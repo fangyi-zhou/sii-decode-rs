@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 nom = "7"
+aes = "0.8"
+cbc = "0.1"
+flate2 = "1.0"

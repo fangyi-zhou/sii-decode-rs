@@ -1,5 +1,12 @@
+extern crate aes;
+extern crate flate2;
 extern crate nom;
 
+use std::io::Read;
+
+use aes::cipher::block_padding::NoPadding;
+use aes::cipher::{BlockDecryptMut, KeyIvInit};
+use flate2::read::ZlibDecoder;
 use nom::bytes::complete::{tag, take};
 use nom::number::complete::le_u32;
 use nom::IResult;
@@ -11,11 +18,33 @@ use nom::IResult;
 
 /// structure of a ScsC file
 pub struct ScscFile<'a> {
-    pub header: &'a [u8], // ScsC, size 4
-    pub hmac: &'a [u8],   // size 32
-    pub iv: &'a [u8],     // size 16
-    pub size: u32,
-    pub data: &'a [u8],
+    header: &'a [u8], // ScsC, size 4
+    hmac: &'a [u8],   // size 32
+    iv: &'a [u8],     // size 16
+    size: u32,
+    data: &'a [u8],
+}
+
+type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
+
+impl<'a> ScscFile<'a> {
+    pub fn from_content(content: &'a [u8]) -> Self {
+        let (_, scss_file) = scsc_parser(content).unwrap();
+        scss_file
+    }
+
+    /// Decrypts the data and decompress into BSII binary format
+    pub fn to_bsii_binary(&self) -> Vec<u8> {
+        let mut buf_decryption: Vec<u8> = vec![0; self.data.len()];
+        let cipher = Aes256CbcDec::new_from_slices(ENCRYPTION_KEY, self.iv).unwrap();
+        cipher
+            .decrypt_padded_b2b_mut::<NoPadding>(self.data, buf_decryption.as_mut())
+            .unwrap();
+        let mut buf_decompression: Vec<u8> = vec![0; self.size as usize];
+        let mut decoder = ZlibDecoder::new(buf_decryption.as_slice());
+        decoder.read_exact(&mut buf_decompression).unwrap();
+        buf_decompression
+    }
 }
 
 const ENCRYPTION_KEY: &[u8; 32] = &[
