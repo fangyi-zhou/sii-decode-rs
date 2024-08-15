@@ -7,9 +7,9 @@ use std::str;
 
 use nom::bytes::complete::{tag, take};
 use nom::combinator::{fail, peek};
-use nom::multi::many_till;
+use nom::multi::{count, many_till};
 use nom::number::complete::{le_u32, le_u64};
-use nom::sequence::preceded;
+use nom::sequence::{pair, preceded};
 use nom::IResult;
 
 use log::info;
@@ -31,6 +31,8 @@ struct Prototype<'a> {
 struct ValuePrototype<'a> {
     type_id: u32,
     name: &'a str,
+    // enum values are only used when type_id is 0x37
+    enum_values: Option<HashMap<u32, &'a str>>,
 }
 
 struct DataBlock<'a> {
@@ -97,8 +99,25 @@ fn value_prototype_parser(input: &[u8]) -> IResult<&[u8], ValuePrototype<'_>> {
         fail(input)
     } else {
         let (input, name) = str_parser(input)?;
+        let (input, enum_values) = if type_id == 0x37u32 {
+            // parse enum values
+            let (input, enum_values_length) = le_u32(input)?;
+            let (input, enum_values_vec) =
+                count(pair(le_u32, str_parser), enum_values_length as usize)(input)?;
+            let enum_values = HashMap::from_iter(enum_values_vec);
+            (input, Some(enum_values))
+        } else {
+            (input, None)
+        };
         info!("Parsed prototype value {}", name);
-        Ok((input, ValuePrototype { type_id, name }))
+        Ok((
+            input,
+            ValuePrototype {
+                type_id,
+                name,
+                enum_values,
+            },
+        ))
     }
 }
 
@@ -270,14 +289,17 @@ mod tests {
                 ValuePrototype {
                     type_id: 37,
                     name: &"int32_field",
+                    enum_values: None,
                 },
                 ValuePrototype {
                     type_id: 54,
                     name: &"bytebool_array_field",
+                    enum_values: None,
                 },
                 ValuePrototype {
                     type_id: 52,
                     name: &"empty_uint64_array_field",
+                    enum_values: None,
                 },
             ],
         };
@@ -315,6 +337,7 @@ mod tests {
             value_prototypes: vec![ValuePrototype {
                 type_id: 5,
                 name: &"single_field",
+                enum_values: None,
             }],
         };
         let prototypes = HashMap::from([(2, prototype)]);
