@@ -12,6 +12,8 @@ use nom::number::complete::{le_u32, le_u64};
 use nom::sequence::preceded;
 use nom::IResult;
 
+use log::info;
+
 pub struct BsiiFile<'a> {
     header: &'a [u8], // BSII,
     version: u32,
@@ -70,11 +72,13 @@ fn bsii_parser(input: &[u8]) -> IResult<&[u8], BsiiFile<'_>> {
                 ));
             } else {
                 let (next_input, prototype) = prototype_parse(loop_input)?;
+                info!("Parsed prototype {}", prototype.name);
                 prototypes.insert(prototype.id, prototype);
                 loop_input = next_input;
             }
         } else {
             let (next_input, data_block) = data_block_parse(loop_input, &prototypes)?;
+            info!("Parsed data block {:X}", data_block.id);
             data_blocks.push(data_block);
             loop_input = next_input;
         }
@@ -93,6 +97,7 @@ fn value_prototype_parser(input: &[u8]) -> IResult<&[u8], ValuePrototype<'_>> {
         fail(input)
     } else {
         let (input, name) = str_parser(input)?;
+        info!("Parsed prototype value {}", name);
         Ok((input, ValuePrototype { type_id, name }))
     }
 }

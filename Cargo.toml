@@ -8,3 +8,5 @@ nom = "7"
 aes = "0.8"
 cbc = "0.1"
 flate2 = "1.0"
+log = "0.4"
+simple_logger = { version = "5", default-features = false }
