@@ -1,7 +1,3 @@
-extern crate aes;
-extern crate flate2;
-extern crate nom;
-
 use std::io::Read;
 
 use aes::cipher::block_padding::NoPadding;
