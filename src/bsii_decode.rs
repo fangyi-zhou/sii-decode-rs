@@ -3,6 +3,7 @@
 // https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Documents/Binary%20SII%20-%20Types.txt
 
 use std::collections::HashMap;
+use std::fmt;
 use std::str;
 
 use nom::bytes::complete::{tag, take};
@@ -45,6 +46,15 @@ struct DataBlock<'a> {
 enum Id {
     Nameless(u64),
     Named(Vec<String>),
+}
+
+impl fmt::Display for Id {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+            Id::Nameless(id) => write!(f, "nameless_{:02x}", id),
+            Id::Named(parts) => write!(f, "{}", parts.join(".")),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -126,9 +136,8 @@ fn bsii_parser(input: &[u8]) -> IResult<&[u8], BsiiFile<'_>> {
             }
         } else {
             let (next_input, data_block) = data_block_parser(loop_input, &prototypes)?;
-            // TODO: Use Display instead of Debug
             info!(
-                "Parsed data block with prototype {}, ID {:?}",
+                "Parsed data block with prototype {}, ID {}",
                 prototypes.get(&data_block.type_id).unwrap().name,
                 data_block.id
             );
