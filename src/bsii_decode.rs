@@ -11,6 +11,7 @@ use nom::combinator::{fail, map};
 use nom::multi::{count, many_till};
 use nom::number::complete::{le_f32, le_i32, le_i64, le_u16, le_u32, le_u64, le_u8};
 use nom::sequence::{pair, tuple};
+use nom::Finish;
 use nom::IResult;
 
 use log::info;
@@ -92,10 +93,24 @@ enum DataValue<'a> {
     IdArray(Vec<Id>),
 }
 
+#[derive(Debug)]
+pub enum ParseError {
+    InvalidHeader,
+    InvalidInput,
+}
+
 impl<'a> BsiiFile<'a> {
-    pub fn from_content(content: &'a [u8]) -> Self {
-        let (_, bsii_file) = bsii_parser(content).unwrap();
-        bsii_file
+    pub fn from_content(content: &'a [u8]) -> Result<Self, ParseError> {
+        match bsii_parser(content).finish() {
+            Ok((_, bsii_file)) => Ok(bsii_file),
+            Err(error) => {
+                if error.input == content {
+                    Err(ParseError::InvalidHeader)
+                } else {
+                    Err(ParseError::InvalidInput)
+                }
+            }
+        }
     }
 }
 

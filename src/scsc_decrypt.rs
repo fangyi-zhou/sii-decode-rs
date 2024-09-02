@@ -6,6 +6,7 @@ use flate2::read::ZlibDecoder;
 use nom::bytes::complete::{tag, take};
 use nom::combinator::rest;
 use nom::number::complete::le_u32;
+use nom::Finish;
 use nom::IResult;
 
 /// Parses an ScsC file and decrypts the content.
@@ -24,10 +25,24 @@ pub struct ScscFile<'a> {
 
 type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
 
+#[derive(Debug)]
+pub enum ParseError {
+    InvalidHeader,
+    InvalidInput,
+}
+
 impl<'a> ScscFile<'a> {
-    pub fn from_content(content: &'a [u8]) -> Self {
-        let (_, scss_file) = scsc_parser(content).unwrap();
-        scss_file
+    pub fn from_content(content: &'a [u8]) -> Result<Self, ParseError> {
+        match scsc_parser(content).finish() {
+            Ok((_, scsc_file)) => Ok(scsc_file),
+            Err(error) => {
+                if error.input == content {
+                    Err(ParseError::InvalidHeader)
+                } else {
+                    Err(ParseError::InvalidInput)
+                }
+            }
+        }
     }
 
     /// Decrypts the data and decompress into BSII binary format

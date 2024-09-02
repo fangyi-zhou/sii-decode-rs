@@ -13,8 +13,8 @@ fn main() {
 
     let arg = env::args().last().unwrap();
     let content = fs::read(arg).unwrap();
-    let scsc_file = ScscFile::from_content(content.as_slice());
+    let scsc_file = ScscFile::from_content(content.as_slice()).unwrap();
     let bsii_binary = scsc_file.to_bsii_binary();
     fs::write("output.bsii", &bsii_binary).unwrap();
-    let _bsii_file = BsiiFile::from_content(&bsii_binary);
+    let _bsii_file = BsiiFile::from_content(&bsii_binary).unwrap();
 }
