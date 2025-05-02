@@ -3,6 +3,14 @@ name = "sii-decrypt-rs"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "sii_decrypt_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sii-decrypt"
+path = "src/main.rs"
+
 [dependencies]
 nom = "7"
 aes = "0.8"
