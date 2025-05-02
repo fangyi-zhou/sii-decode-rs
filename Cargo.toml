@@ -1,5 +1,5 @@
 [package]
-name = "ets2-achievement-analyser"
+name = "sii-decrypt-rs"
 version = "0.1.0"
 edition = "2021"
 
