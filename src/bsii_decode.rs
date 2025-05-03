@@ -20,7 +20,7 @@ pub struct BsiiFile<'a> {
     header: &'a [u8], // BSII,
     version: u32,
     prototypes: HashMap<u32, Prototype<'a>>,
-    data_blocks: Vec<DataBlock<'a>>,
+    pub data_blocks: Vec<DataBlock<'a>>,
 }
 
 struct Prototype<'a> {
@@ -37,14 +37,14 @@ struct ValuePrototype<'a> {
     enum_values: Option<HashMap<u32, &'a str>>,
 }
 
-struct DataBlock<'a> {
+pub struct DataBlock<'a> {
     type_id: u32,
-    id: Id,
+    pub id: Id,
     data: Vec<DataValue<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
-enum Id {
+pub enum Id {
     Nameless(u64),
     Named(Vec<String>),
 }
