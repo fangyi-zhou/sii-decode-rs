@@ -52,7 +52,27 @@ pub enum Id {
 impl fmt::Display for Id {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
-            Id::Nameless(id) => write!(f, "nameless_{:02x}", id),
+            Id::Nameless(id) => {
+                write!(f, "_nameless")?;
+                // Convert to hex string, grouped by u16 chars
+                let part1 = ((id >> 48) & 0xffff) as u16;
+                if part1 != 0 {
+                    write!(f, ".{:x}", part1)?;
+                }
+                let part2 = ((id >> 32) & 0xffff) as u16;
+                if part2 != 0 {
+                    write!(f, ".{:x}", part2)?;
+                }
+                let part3 = ((id >> 16) & 0xffff) as u16;
+                if part3 != 0 {
+                    write!(f, ".{:x}", part3)?;
+                }
+                let part4 = (id & 0xffff) as u16;
+                if part4 != 0 {
+                    write!(f, ".{:x}", part4)?;
+                }
+                Ok(())
+            }
             Id::Named(parts) => write!(f, "{}", parts.join(".")),
         }
     }
@@ -648,5 +668,13 @@ mod tests {
             }
             Err(err) => panic!("Failed to parse, {}", err),
         }
+    }
+
+    #[test]
+    fn id_print_test() {
+        let id = Id::Nameless(0x0807060504030201u64);
+        assert_eq!(id.to_string(), "_nameless.807.605.403.201");
+        let id = Id::Named(vec!["first".to_string(), "second".to_string()]);
+        assert_eq!(id.to_string(), "first.second");
     }
 }
