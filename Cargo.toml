@@ -22,5 +22,5 @@ aes = "0.8"
 cbc = "0.1"
 flate2 = "1.0"
 log = "0.4"
-simple_logger = { version = "5", default-features = false }
+simple_logger = { version = "5", default-features = false, features = ["stderr"] }
 wasm-bindgen = { version = "0.2", optional = true }
