@@ -73,7 +73,13 @@ impl fmt::Display for Id {
                 }
                 Ok(())
             }
-            Id::Named(parts) => write!(f, "{}", parts.join(".")),
+            Id::Named(parts) => {
+                if parts.is_empty() {
+                    write!(f, "null")
+                } else {
+                    write!(f, "{}", parts.join("."))
+                }
+            }
         }
     }
 }
@@ -680,5 +686,7 @@ mod tests {
         assert_eq!(id.to_string(), "_nameless.807.605.403.201");
         let id = Id::Named(vec!["first".to_string(), "second".to_string()]);
         assert_eq!(id.to_string(), "first.second");
+        let id = Id::Named(vec![]);
+        assert_eq!(id.to_string(), "null");
     }
 }
