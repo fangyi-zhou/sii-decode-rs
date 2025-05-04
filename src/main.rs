@@ -16,7 +16,7 @@ fn main() {
     let content = fs::read(arg).unwrap();
     let scsc_file = ScscFile::from_content(content.as_slice()).unwrap();
     let bsii_binary = scsc_file.to_bsii_binary();
-    fs::write("output.bsii", &bsii_binary).unwrap();
+    // fs::write("output.bsii", &bsii_binary).unwrap();
     let bsii_file = BsiiFile::from_content(&bsii_binary).unwrap();
     println!("{}", bsii_output::bsii_to_siin(&bsii_file));
 }
