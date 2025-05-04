@@ -23,24 +23,24 @@ pub struct BsiiFile<'a> {
     pub data_blocks: Vec<DataBlock<'a>>,
 }
 
-struct Prototype<'a> {
+pub struct Prototype<'a> {
     // valid prototypes only
     id: u32,
-    name: &'a str,
-    value_prototypes: Vec<ValuePrototype<'a>>,
+    pub name: &'a str,
+    pub value_prototypes: Vec<ValuePrototype<'a>>,
 }
 
-struct ValuePrototype<'a> {
+pub struct ValuePrototype<'a> {
     type_id: u32,
-    name: &'a str,
+    pub name: &'a str,
     // enum values are only used when type_id is 0x37
-    enum_values: Option<HashMap<u32, &'a str>>,
+    pub enum_values: Option<HashMap<u32, &'a str>>,
 }
 
 pub struct DataBlock<'a> {
-    type_id: u32,
+    pub type_id: u32,
     pub id: Id,
-    data: Vec<DataValue<'a>>,
+    pub data: Vec<DataValue<'a>>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -79,7 +79,7 @@ impl fmt::Display for Id {
 }
 
 #[derive(PartialEq, Debug)]
-enum DataValue<'a> {
+pub enum DataValue<'a> {
     String(&'a str),
     StringArray(Vec<&'a str>),
     EncodedString(String),
@@ -131,6 +131,10 @@ impl<'a> BsiiFile<'a> {
                 }
             }
         }
+    }
+
+    pub fn get_prototype(&self, id: u32) -> Option<&Prototype<'a>> {
+        self.prototypes.get(&id)
     }
 }
 
