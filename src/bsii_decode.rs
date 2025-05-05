@@ -30,6 +30,7 @@ pub struct Prototype<'a> {
     pub value_prototypes: Vec<ValuePrototype<'a>>,
 }
 
+#[derive(Debug)]
 pub struct ValuePrototype<'a> {
     type_id: u32,
     pub name: &'a str,
@@ -84,6 +85,8 @@ impl fmt::Display for Id {
     }
 }
 
+// TODO: Refactor this code so that singletons and vectors of different types
+// are not duplicated
 #[derive(PartialEq, Debug)]
 pub enum DataValue<'a> {
     String(&'a str),
@@ -117,6 +120,48 @@ pub enum DataValue<'a> {
     Enum(u32),
     Id(Id),
     IdArray(Vec<Id>),
+}
+
+impl DataValue<'_> {
+    pub fn is_array(&self) -> bool {
+        match &self {
+            DataValue::StringArray(_) => true,
+            DataValue::EncodedStringArray(_) => true,
+            DataValue::FloatArray(_) => true,
+            DataValue::FloatVec3Array(_) => true,
+            DataValue::Int32Vec3Array(_) => true,
+            DataValue::FloatVec4Array(_) => true,
+            DataValue::FloatVec8Array(_) => true,
+            DataValue::Int32Array(_) => true,
+            DataValue::UInt32Array(_) => true,
+            DataValue::UInt16Array(_) => true,
+            DataValue::Int64Array(_) => true,
+            DataValue::UInt64Array(_) => true,
+            DataValue::BoolArray(_) => true,
+            DataValue::IdArray(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn get_array_length(&self) -> Option<usize> {
+        match &self {
+            DataValue::StringArray(array) => Some(array.len()),
+            DataValue::EncodedStringArray(array) => Some(array.len()),
+            DataValue::FloatArray(array) => Some(array.len()),
+            DataValue::FloatVec3Array(array) => Some(array.len()),
+            DataValue::Int32Vec3Array(array) => Some(array.len()),
+            DataValue::FloatVec4Array(array) => Some(array.len()),
+            DataValue::FloatVec8Array(array) => Some(array.len()),
+            DataValue::Int32Array(array) => Some(array.len()),
+            DataValue::UInt32Array(array) => Some(array.len()),
+            DataValue::UInt16Array(array) => Some(array.len()),
+            DataValue::Int64Array(array) => Some(array.len()),
+            DataValue::UInt64Array(array) => Some(array.len()),
+            DataValue::BoolArray(array) => Some(array.len()),
+            DataValue::IdArray(array) => Some(array.len()),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug)]
