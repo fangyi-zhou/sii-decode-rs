@@ -4,6 +4,33 @@ use std::{fmt::Write, iter::zip};
 /// Reference: https://modding.scssoft.com/wiki/Documentation/Engine/Units
 use crate::bsii_decode::{BsiiFile, DataBlock, DataValue, Prototype, ValuePrototype};
 
+fn write_u16<W: Write>(f: &mut W, data: &u16) -> std::fmt::Result {
+    // If the value is max, then `nil` should written
+    if *data == u16::MAX {
+        write!(f, "nil")
+    } else {
+        write!(f, "{}", data)
+    }
+}
+
+fn write_u32<W: Write>(f: &mut W, data: &u32) -> std::fmt::Result {
+    // If the value is max, then `nil` should written
+    if *data == u32::MAX {
+        write!(f, "nil")
+    } else {
+        write!(f, "{}", data)
+    }
+}
+
+fn write_u64<W: Write>(f: &mut W, data: &u64) -> std::fmt::Result {
+    // If the value is max, then `nil` should written
+    if *data == u64::MAX {
+        write!(f, "nil")
+    } else {
+        write!(f, "{}", data)
+    }
+}
+
 fn write_float<W: Write>(f: &mut W, data: &f32) -> std::fmt::Result {
     // Ref: https://github.com/TheLazyTomcat/SII_Decrypt/blob/d1cd7921d4667de895288c7227c58df43b63bd21/Source/SII_Decode_Utils.pas#L48
     if data.trunc() == *data && data.abs() <= 1e7 {
@@ -108,15 +135,9 @@ fn write_scalar_data_value<W: Write>(
             write!(f, "{}", i)
         }
         DataValue::Int32Vec3(data) => write_vec3(f, data, |f, i| write!(f, "{}", i)),
-        DataValue::UInt16(u) => {
-            write!(f, "{}", u)
-        }
-        DataValue::UInt32(u) => {
-            write!(f, "{}", u)
-        }
-        DataValue::UInt64(u) => {
-            write!(f, "{}", u)
-        }
+        DataValue::UInt16(u) => write_u16(f, u),
+        DataValue::UInt32(u) => write_u32(f, u),
+        DataValue::UInt64(u) => write_u64(f, u),
         DataValue::Id(id) => {
             write!(f, "{}", id)
         }
@@ -201,19 +222,13 @@ fn write_vector_data_value<W: Write>(
             write_vector_data_value_single(f, value_prototype.name, ints, |f, i| write!(f, "{}", i))
         }
         DataValue::UInt16Array(uints) => {
-            write_vector_data_value_single(f, value_prototype.name, uints, |f, u| {
-                write!(f, "{}", u)
-            })
+            write_vector_data_value_single(f, value_prototype.name, uints, write_u16)
         }
         DataValue::UInt32Array(uints) => {
-            write_vector_data_value_single(f, value_prototype.name, uints, |f, u| {
-                write!(f, "{}", u)
-            })
+            write_vector_data_value_single(f, value_prototype.name, uints, write_u32)
         }
         DataValue::UInt64Array(uints) => {
-            write_vector_data_value_single(f, value_prototype.name, uints, |f, u| {
-                write!(f, "{}", u)
-            })
+            write_vector_data_value_single(f, value_prototype.name, uints, write_u64)
         }
         DataValue::BoolArray(bools) => {
             write_vector_data_value_single(f, value_prototype.name, bools, |f, b| {
