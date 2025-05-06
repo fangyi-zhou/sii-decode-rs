@@ -21,3 +21,4 @@ TODO
 - [ ] Add unit tests for serialising BSII files
 - [ ] Define the WebAssembly API
 - [ ] Provide the tool as a web application (using WebAssembly)
+- [ ] Use the decode result to make an achievement tracker tool
