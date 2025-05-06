@@ -46,6 +46,7 @@ impl<'a> ScscFile<'a> {
     }
 
     /// Decrypts the data and decompress into BSII binary format
+    /// FIXME: This should be renamed --- sometimes the output is actually a SIIN file
     pub fn to_bsii_binary(&self) -> Vec<u8> {
         let mut buf_decryption: Vec<u8> = vec![0; self.data.len()];
         let cipher = Aes256CbcDec::new_from_slices(ENCRYPTION_KEY, self.iv).unwrap();
