@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::str;
 
-use flate2::write;
 use nom::bytes::complete::{tag, take};
 use nom::combinator::{fail, map};
 use nom::multi::{count, many_till};
@@ -15,7 +14,7 @@ use nom::sequence::{pair, tuple};
 use nom::Finish;
 use nom::IResult;
 
-use log::info;
+use log::{debug, info};
 
 pub struct BsiiFile<'a> {
     header: &'a [u8], // BSII,
@@ -230,7 +229,7 @@ fn bsii_parser(input: &[u8]) -> IResult<&[u8], BsiiFile<'_>> {
             }
         } else {
             let (next_input, data_block) = data_block_parser(loop_input, &prototypes)?;
-            info!(
+            debug!(
                 "Parsed data block with prototype {}, ID {}",
                 prototypes.get(&data_block.type_id).unwrap().name,
                 data_block.id
@@ -280,7 +279,7 @@ fn value_prototype_parser(input: &[u8]) -> IResult<&[u8], ValuePrototype<'_>> {
         } else {
             (input, None)
         };
-        info!("Parsed prototype value {}", name);
+        info!("Parsed prototype value {} type_id {:x}", name, type_id);
         Ok((
             input,
             ValuePrototype {

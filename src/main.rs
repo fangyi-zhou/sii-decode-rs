@@ -10,7 +10,10 @@ mod bsii_output;
 mod scsc_decrypt;
 
 fn main() {
-    SimpleLogger::new().init().unwrap();
+    SimpleLogger::new()
+        .with_level(log::LevelFilter::Info)
+        .init()
+        .unwrap();
 
     let arg = env::args().last().unwrap();
     let content = fs::read(arg).unwrap();
