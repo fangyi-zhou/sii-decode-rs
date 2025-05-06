@@ -4,6 +4,35 @@ use std::{fmt::Write, iter::zip};
 /// Reference: https://modding.scssoft.com/wiki/Documentation/Engine/Units
 use crate::bsii_decode::{BsiiFile, DataBlock, DataValue, Prototype, ValuePrototype};
 
+fn write_string<W: Write>(f: &mut W, data: &str) -> std::fmt::Result {
+    // If the string consists of only digits, alphabetic characters, and underscores,
+    // then it should be written without quotes
+    if data.is_empty() {
+        write!(f, "\"\"")
+    } else if data.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+        write!(f, "{}", data)
+    } else {
+        write!(f, "{}", '\"')?;
+        for c in data.as_bytes() {
+            if *c >= 32u8 && *c <= 127u8 {
+                write!(f, "{}", *c as char)?;
+            } else {
+                write!(f, "\\x{:02x}", c)?;
+            }
+        }
+        write!(f, "{}", '\"')
+    }
+}
+
+fn write_encoded_string<W: Write>(f: &mut W, data: &str) -> std::fmt::Result {
+    // If the value is empty, then it should be written as `""`
+    if data == "" {
+        write!(f, "\"\"")
+    } else {
+        write!(f, "{}", data)
+    }
+}
+
 fn write_u16<W: Write>(f: &mut W, data: &u16) -> std::fmt::Result {
     // If the value is max, then `nil` should written
     if *data == u16::MAX {
@@ -117,12 +146,8 @@ fn write_scalar_data_value<W: Write>(
     value_prototype: &ValuePrototype<'_>,
 ) -> std::fmt::Result {
     match data {
-        DataValue::String(s) => {
-            write!(f, "\"{}\"", s)
-        }
-        DataValue::EncodedString(s) => {
-            write!(f, "{}", s)
-        }
+        DataValue::String(s) => write_string(f, s),
+        DataValue::EncodedString(s) => write_encoded_string(f, s),
         DataValue::Float(float) => write_float(f, float),
         DataValue::FloatVec2(data) => write_vec2(f, data, |f, float| write_float(f, float)),
         DataValue::FloatVec3(data) => write_vec3(f, data, |f, float| write_float(f, float)),
@@ -181,12 +206,12 @@ fn write_vector_data_value<W: Write>(
     match data {
         DataValue::StringArray(strings) => {
             write_vector_data_value_single(f, value_prototype.name, strings, |f, s| {
-                write!(f, "\"{}\"", s)
+                write_string(f, s)
             })
         }
         DataValue::EncodedStringArray(strings) => {
             write_vector_data_value_single(f, value_prototype.name, strings, |f, s| {
-                write!(f, "{}", s)
+                write_encoded_string(f, s)
             })
         }
         DataValue::IdArray(ids) => {
