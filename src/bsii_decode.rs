@@ -68,10 +68,8 @@ impl fmt::Display for Id {
                         if !has_first_part && part != 0 {
                             has_first_part = true;
                             write!(f, ".{:x}", part)?;
-                        } else {
-                            if has_first_part {
-                                write!(f, ".{:04x}", part)?;
-                            }
+                        } else if has_first_part {
+                            write!(f, ".{:04x}", part)?;
                         }
                     }
                 }
