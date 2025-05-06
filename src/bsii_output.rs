@@ -42,19 +42,19 @@ fn write_vec3<W: Write, T>(
     write!(f, ")")
 }
 
-fn write_vec4<W: Write, T>(
+fn write_float_vec4<W: Write>(
     f: &mut W,
-    data: &(T, T, T, T),
-    format_fn: impl Fn(&mut W, &T) -> std::fmt::Result,
+    (f1, f2, f3, f4): &(f32, f32, f32, f32),
 ) -> std::fmt::Result {
+    // https://github.com/TheLazyTomcat/SII_Decrypt/blob/d1cd7921d4667de895288c7227c58df43b63bd21/Source/ValueNodes/SII_Decode_ValueNode_00000018.pas#L96
     write!(f, "(")?;
-    format_fn(f, &data.0)?;
+    write_float(f, f1)?;
+    write!(f, "; ")?;
+    write_float(f, f2)?;
     write!(f, ", ")?;
-    format_fn(f, &data.1)?;
+    write_float(f, f3)?;
     write!(f, ", ")?;
-    format_fn(f, &data.2)?;
-    write!(f, ", ")?;
-    format_fn(f, &data.3)?;
+    write_float(f, f4)?;
     write!(f, ")")
 }
 
@@ -99,7 +99,7 @@ fn write_scalar_data_value<W: Write>(
         DataValue::Float(float) => write_float(f, float),
         DataValue::FloatVec2(data) => write_vec2(f, data, |f, float| write_float(f, float)),
         DataValue::FloatVec3(data) => write_vec3(f, data, |f, float| write_float(f, float)),
-        DataValue::FloatVec4(data) => write_vec4(f, data, |f, float| write_float(f, float)),
+        DataValue::FloatVec4(data) => write_float_vec4(f, data),
         DataValue::FloatVec8(data) => write_float_vec8(f, data),
         DataValue::Int32(i) => {
             write!(f, "{}", i)
@@ -183,7 +183,7 @@ fn write_vector_data_value<W: Write>(
         }
         DataValue::FloatVec4Array(floatvecs) => {
             write_vector_data_value_single(f, value_prototype.name, floatvecs, |f, data| {
-                write_vec4(f, data, |f, float| write_float(f, float))
+                write_float_vec4(f, data)
             })
         }
         DataValue::FloatVec8Array(floatvecs) => {
