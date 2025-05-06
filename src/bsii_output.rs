@@ -60,15 +60,19 @@ fn write_vec4<W: Write, T>(
 
 fn write_float_vec8<W: Write>(
     f: &mut W,
-    (f1, f2, f3, _, f5, f6, f7, f8): &(f32, f32, f32, f32, f32, f32, f32, f32),
+    (f1, f2, f3, f4, f5, f6, f7, f8): &(f32, f32, f32, f32, f32, f32, f32, f32),
 ) -> std::fmt::Result {
     // https://github.com/TheLazyTomcat/SII_Decrypt/blob/d1cd7921d4667de895288c7227c58df43b63bd21/Source/ValueNodes/SII_Decode_ValueNode_0000001A.pas#L124
+    // https://github.com/TheLazyTomcat/SII_Decrypt/blob/d1cd7921d4667de895288c7227c58df43b63bd21/Source/ValueNodes/SII_Decode_ValueNode_00000019.pas#L57
+    let coef = f4.trunc() as i32;
+    let f1_ = f1 + ((coef & 0xfff - 2048) << 9) as f32;
+    let f3_ = f3 + (((coef >> 12) & 0xfff - 2048) << 9) as f32;
     write!(f, "(")?;
-    write_float(f, f1)?;
+    write_float(f, &f1_)?;
     write!(f, ", ")?;
     write_float(f, f2)?;
     write!(f, ", ")?;
-    write_float(f, f3)?;
+    write_float(f, &f3_)?;
     write!(f, ") (")?;
     write_float(f, f5)?;
     write!(f, "; ")?;
