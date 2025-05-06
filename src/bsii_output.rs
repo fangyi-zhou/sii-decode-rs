@@ -176,7 +176,7 @@ fn write_scalar_data_value<W: Write>(
                 .unwrap()
                 .get(e)
                 .unwrap();
-            write!(f, "\"{}\"", enum_string)
+            write_string(f, enum_string)
         }
         _ => {
             panic!("Unexpected data type {:?}", data);
