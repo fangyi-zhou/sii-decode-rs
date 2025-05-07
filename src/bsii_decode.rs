@@ -1,6 +1,6 @@
-// Refs:
-// https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Documents/Binary%20SII%20-%20Format.txt
-// https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Documents/Binary%20SII%20-%20Types.txt
+//! References:
+//! <https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Documents/Binary%20SII%20-%20Format.txt>
+//! <https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Documents/Binary%20SII%20-%20Types.txt>
 
 use std::collections::HashMap;
 use std::fmt;
@@ -87,7 +87,7 @@ impl fmt::Display for Id {
 }
 
 /// A "placement" is a tuple of 8 floats, according to
-/// https://modding.scssoft.com/wiki/Documentation/Engine/Units
+/// <https://modding.scssoft.com/wiki/Documentation/Engine/Units>
 pub type Placement = (f32, f32, f32, f32, f32, f32, f32, f32);
 
 // TODO: Refactor this code so that singletons and vectors of different types
