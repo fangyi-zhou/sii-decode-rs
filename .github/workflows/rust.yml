@@ -21,3 +21,5 @@ jobs:
     - name: Run clippy
       # Ignore "unused" warnings for now
       run: cargo clippy --all-features -- -D warnings -A unused
+    - name: Check formatting
+      run: cargo fmt --all -- --check
