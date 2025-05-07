@@ -15,7 +15,7 @@ fn main() {
         .init()
         .unwrap();
 
-    let arg = env::args().last().unwrap();
+    let arg = env::args().next_back().unwrap();
     let content = fs::read(arg).unwrap();
     let scsc_file = ScscFile::from_content(content.as_slice()).unwrap();
     let bsii_binary = scsc_file.to_bsii_binary();

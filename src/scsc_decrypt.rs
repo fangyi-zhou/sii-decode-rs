@@ -1,3 +1,8 @@
+//! Parses an ScsC file and decrypts the content.
+//!
+//! References:
+//! <https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Source/SII_Decrypt_Decryptor.pas>
+//! <https://gitlab.com/jammerxd/sii-decryptsharp/-/blob/main/SIIDecryptSharp/SIIDecryptSharp/Decryptor.cs>
 use std::io::Read;
 
 use aes::cipher::block_padding::NoPadding;
@@ -8,11 +13,6 @@ use nom::combinator::rest;
 use nom::number::complete::le_u32;
 use nom::Finish;
 use nom::IResult;
-
-/// Parses an ScsC file and decrypts the content.
-/// Refs:
-/// https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Source/SII_Decrypt_Decryptor.pas
-/// https://gitlab.com/jammerxd/sii-decryptsharp/-/blob/main/SIIDecryptSharp/SIIDecryptSharp/Decryptor.cs
 
 /// structure of a ScsC file
 pub struct ScscFile<'a> {
