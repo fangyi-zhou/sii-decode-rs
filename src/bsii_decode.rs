@@ -86,6 +86,10 @@ impl fmt::Display for Id {
     }
 }
 
+/// A "placement" is a tuple of 8 floats, according to
+/// https://modding.scssoft.com/wiki/Documentation/Engine/Units
+pub type Placement = (f32, f32, f32, f32, f32, f32, f32, f32);
+
 // TODO: Refactor this code so that singletons and vectors of different types
 // are not duplicated
 #[derive(PartialEq, Debug)]
@@ -104,8 +108,8 @@ pub enum DataValue<'a> {
     FloatVec4((f32, f32, f32, f32)),
     FloatVec4Array(Vec<(f32, f32, f32, f32)>),
     // Float Vec 7 for version 1 not supported
-    FloatVec8((f32, f32, f32, f32, f32, f32, f32, f32)),
-    FloatVec8Array(Vec<(f32, f32, f32, f32, f32, f32, f32, f32)>),
+    FloatVec8(Placement),
+    FloatVec8Array(Vec<Placement>),
     Int32(i32),
     Int32Array(Vec<i32>),
     UInt32(u32),
@@ -125,23 +129,23 @@ pub enum DataValue<'a> {
 
 impl DataValue<'_> {
     pub fn is_array(&self) -> bool {
-        match &self {
-            DataValue::StringArray(_) => true,
-            DataValue::EncodedStringArray(_) => true,
-            DataValue::FloatArray(_) => true,
-            DataValue::FloatVec3Array(_) => true,
-            DataValue::Int32Vec3Array(_) => true,
-            DataValue::FloatVec4Array(_) => true,
-            DataValue::FloatVec8Array(_) => true,
-            DataValue::Int32Array(_) => true,
-            DataValue::UInt32Array(_) => true,
-            DataValue::UInt16Array(_) => true,
-            DataValue::Int64Array(_) => true,
-            DataValue::UInt64Array(_) => true,
-            DataValue::BoolArray(_) => true,
-            DataValue::IdArray(_) => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            DataValue::StringArray(_)
+                | DataValue::EncodedStringArray(_)
+                | DataValue::FloatArray(_)
+                | DataValue::FloatVec3Array(_)
+                | DataValue::Int32Vec3Array(_)
+                | DataValue::FloatVec4Array(_)
+                | DataValue::FloatVec8Array(_)
+                | DataValue::Int32Array(_)
+                | DataValue::UInt32Array(_)
+                | DataValue::UInt16Array(_)
+                | DataValue::Int64Array(_)
+                | DataValue::UInt64Array(_)
+                | DataValue::BoolArray(_)
+                | DataValue::IdArray(_)
+        )
     }
 
     pub fn get_array_length(&self) -> Option<usize> {
@@ -506,7 +510,7 @@ mod tests {
             0x66, 0x69, 0x72, 0x73, 0x74, 0x5F, 0x73, 0x74, 0x72, 0x75, 0x63, 0x74, 0x75, 0x72,
             0x65, // data
         ];
-        match str_parser(&test_str) {
+        match str_parser(test_str) {
             Ok((input, parsed_str)) => {
                 assert_eq!(input, &[]);
                 assert_eq!(parsed_str, "first_structure");
@@ -594,21 +598,21 @@ mod tests {
     fn data_block_parse_works() {
         let prototype = Prototype {
             id: 1,
-            name: &"first_structure",
+            name: "first_structure",
             value_prototypes: vec![
                 ValuePrototype {
                     type_id: 37,
-                    name: &"int32_field",
+                    name: "int32_field",
                     enum_values: None,
                 },
                 ValuePrototype {
                     type_id: 54,
-                    name: &"bytebool_array_field",
+                    name: "bytebool_array_field",
                     enum_values: None,
                 },
                 ValuePrototype {
                     type_id: 52,
-                    name: &"empty_uint64_array_field",
+                    name: "empty_uint64_array_field",
                     enum_values: None,
                 },
             ],
@@ -643,10 +647,10 @@ mod tests {
     fn data_block_parse_works_2() {
         let prototype = Prototype {
             id: 2,
-            name: &"last",
+            name: "last",
             value_prototypes: vec![ValuePrototype {
                 type_id: 5,
-                name: &"single_field",
+                name: "single_field",
                 enum_values: None,
             }],
         };

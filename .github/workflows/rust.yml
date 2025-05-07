@@ -15,6 +15,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --verbose --all-features
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test --verbose --all-features
+    - name: Run clippy
+      # Ignore "unused" warnings for now
+      run: cargo clippy --all-features -- -D warnings -A unused
