@@ -299,7 +299,7 @@ fn write_bsii<W: Write>(f: &mut W, bsii: &BsiiFile) -> std::fmt::Result {
     writeln!(f, "SiiNunit")?;
     writeln!(f, "{{")?;
     for data_block in &bsii.data_blocks {
-        let prototype = bsii.get_prototype(data_block.type_id).unwrap();
+        let prototype = bsii.get_prototype(data_block.prototype_id).unwrap();
         write_data_block(f, data_block, prototype)?;
     }
     writeln!(f, "}}")?;

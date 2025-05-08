@@ -1,12 +1,23 @@
+//! Defines the BSII file format (binary SII file format)
+
 use std::collections::HashMap;
 
+/// BSII file
+///
+/// The BSII file format is a binary format. The file begins with a 4 byte
+/// "BSII" header, followed by a version number.
+/// Then comes a list of prototypes for datablocks, which can be considered as definitions of data classes.
+/// After that, there are data blocks, which are instances of the prototypes.
+///
+/// More details can be found in <https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Documents/Binary%20SII%20-%20Format.txt>
 pub struct BsiiFile<'a> {
     pub(crate) header: &'a [u8], // BSII,
     pub(crate) version: u32,
-    pub(crate) prototypes: HashMap<u32, Prototype<'a>>,
+    pub prototypes: HashMap<u32, Prototype<'a>>,
     pub data_blocks: Vec<DataBlock<'a>>,
 }
 
+/// A prototype contains the definition of a data block, with an ID, a name, and a list of definition of fields.
 pub struct Prototype<'a> {
     // valid prototypes only
     pub(crate) id: u32,
@@ -14,6 +25,10 @@ pub struct Prototype<'a> {
     pub value_prototypes: Vec<ValuePrototype<'a>>,
 }
 
+/// A value prototype is a definition of a field in a data block.
+/// Each value has an type ID, a name.
+/// If the type ID is 0x37, it means that the value is an enum, and a list of
+/// enum values are additionally provided.
 #[derive(Debug)]
 pub struct ValuePrototype<'a> {
     pub(crate) type_id: u32,
@@ -22,12 +37,19 @@ pub struct ValuePrototype<'a> {
     pub enum_values: Option<HashMap<u32, &'a str>>,
 }
 
+/// A data block is an instance of a prototype.
+/// It contains a prototype ID (corresponding to a prototype defined earlier),
+/// an ID (to identify this data block), and a list of values (corresponding to
+/// fields defined in the prototype).
 pub struct DataBlock<'a> {
-    pub type_id: u32,
+    pub prototype_id: u32,
     pub id: Id,
     pub data: Vec<DataValue<'a>>,
 }
 
+/// An ID to identify a data block.
+/// It can be either a nameless ID (a 64 bit integer) or a named ID (consisting
+/// of multiple parts).
 #[derive(PartialEq, Debug)]
 pub enum Id {
     Nameless(u64),
@@ -40,6 +62,7 @@ pub type Placement = (f32, f32, f32, f32, f32, f32, f32, f32);
 
 // TODO: Refactor this code so that singletons and vectors of different types
 // are not duplicated
+/// A data value is a value of a field in a data block.
 #[derive(PartialEq, Debug)]
 pub enum DataValue<'a> {
     String(&'a str),

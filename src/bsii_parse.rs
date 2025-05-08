@@ -165,7 +165,7 @@ fn bsii_parser(input: &[u8]) -> IResult<&[u8], BsiiFile<'_>> {
             let (next_input, data_block) = data_block_parser(loop_input, &prototypes)?;
             debug!(
                 "Parsed data block with prototype {}, ID {}",
-                prototypes.get(&data_block.type_id).unwrap().name,
+                prototypes.get(&data_block.prototype_id).unwrap().name,
                 data_block.id
             );
             data_blocks.push(data_block);
@@ -412,12 +412,12 @@ fn data_block_parser<'a, 'b>(
     input: &'a [u8],
     prototypes: &'b HashMap<u32, Prototype<'b>>,
 ) -> IResult<&'a [u8], DataBlock<'a>> {
-    let (input, type_id) = le_u32(input)?;
-    if type_id == 0 {
+    let (input, prototype_id) = le_u32(input)?;
+    if prototype_id == 0 {
         // this is a prototype block, not a data block
         fail(input)
     } else {
-        let prototype = prototypes.get(&type_id).unwrap();
+        let prototype = prototypes.get(&prototype_id).unwrap();
         let (input, id) = id_parser(input)?;
         // TODO: Try to rewrite the code below in combinators
         let mut data: Vec<DataValue<'a>> = Vec::new();
@@ -427,7 +427,14 @@ fn data_block_parser<'a, 'b>(
             loop_input = next_input;
             data.push(value);
         }
-        Ok((loop_input, DataBlock { type_id, id, data }))
+        Ok((
+            loop_input,
+            DataBlock {
+                prototype_id,
+                id,
+                data,
+            },
+        ))
     }
 }
 
@@ -561,7 +568,7 @@ mod tests {
         match data_block_parser(test_data_block, &prototypes) {
             Ok((input, data_block)) => {
                 assert_eq!(input, &[]);
-                assert_eq!(data_block.type_id, 1);
+                assert_eq!(data_block.prototype_id, 1);
                 assert_eq!(data_block.id, Id::Nameless(0x0807060504030201u64));
                 assert_eq!(data_block.data.len(), 3);
                 assert_eq!(data_block.data[0], DataValue::Int32(-1));
@@ -595,7 +602,7 @@ mod tests {
         match data_block_parser(test_data_block, &prototypes) {
             Ok((input, data_block)) => {
                 assert_eq!(input, &[]);
-                assert_eq!(data_block.type_id, 2);
+                assert_eq!(data_block.prototype_id, 2);
                 assert_eq!(data_block.id, Id::Nameless(0xfffefdfcfbfaf9f8u64));
                 assert_eq!(data_block.data.len(), 1);
                 assert_eq!(data_block.data[0], DataValue::Float(1.0f32));
