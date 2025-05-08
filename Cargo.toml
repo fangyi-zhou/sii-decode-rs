@@ -1,15 +1,15 @@
 [package]
-name = "sii-decrypt-rs"
+name = "sii-decode-rs"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "sii_decrypt_lib"
+name = "sii_decode"
 path = "src/lib.rs"
 crate-type = ["cdylib", "rlib"]
 
 [[bin]]
-name = "sii-decrypt"
+name = "sii-decode"
 path = "src/main.rs"
 
 [features]
