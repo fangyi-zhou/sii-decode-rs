@@ -19,4 +19,4 @@ jobs:
     - name: Build
       run: wasm-pack build --verbose --all-features
     - name: Run tests
-      run: wasm-pack test --verbose --all-features --headless --firefox --chrome
+      run: wasm-pack test --node --firefox --chrome --verbose --all-features 
