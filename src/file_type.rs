@@ -1,6 +1,6 @@
 //! Handles file types for SII files.
 
-use log::info;
+use log::{error, info};
 
 use crate::{bsii_file::BsiiFile, scsc_file::ScscFile};
 
@@ -40,14 +40,19 @@ pub fn decode_until_siin(file_content: &[u8]) -> Option<Vec<u8>> {
     match file_type {
         FileType::Scsc => {
             let scsc_file = ScscFile::parse(content).unwrap();
-            let decoded_content = scsc_file.decode();
-            match detect_file_type(&decoded_content)? {
-                FileType::Siin => Some(decoded_content),
-                FileType::Bsii => {
-                    let bsii_file = BsiiFile::parse(&decoded_content).unwrap();
-                    Some(bsii_file.to_siin().as_bytes().to_vec())
+            let decoded = scsc_file.decode();
+            if let Ok(decoded_content) = decoded {
+                match detect_file_type(&decoded_content)? {
+                    FileType::Siin => Some(decoded_content),
+                    FileType::Bsii => {
+                        let bsii_file = BsiiFile::parse(&decoded_content).unwrap();
+                        Some(bsii_file.to_siin().as_bytes().to_vec())
+                    }
+                    _ => unreachable!("Unexpected file type after decoding"),
                 }
-                _ => unreachable!("Unexpected file type after decoding"),
+            } else {
+                error!("Failed to decode content");
+                None
             }
         }
         FileType::Bsii => {

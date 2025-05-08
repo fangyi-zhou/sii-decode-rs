@@ -3,9 +3,9 @@
 //! References:
 //! <https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Source/SII_Decrypt_Decryptor.pas>
 //! <https://gitlab.com/jammerxd/sii-decryptsharp/-/blob/main/SIIDecryptSharp/SIIDecryptSharp/Decryptor.cs>
-use std::io::Read;
+use std::io::{self, Read};
 
-use aes::cipher::block_padding::NoPadding;
+use aes::cipher::block_padding::{NoPadding, UnpadError};
 use aes::cipher::{BlockDecryptMut, KeyIvInit};
 use flate2::read::ZlibDecoder;
 
@@ -31,19 +31,35 @@ pub enum ParseError {
     InvalidInput,
 }
 
+#[derive(Debug)]
+pub enum DecodeError {
+    DecryptionError(UnpadError),
+    DecompressionError(io::Error),
+}
+
+impl From<UnpadError> for DecodeError {
+    fn from(err: UnpadError) -> Self {
+        DecodeError::DecryptionError(err)
+    }
+}
+
+impl From<io::Error> for DecodeError {
+    fn from(err: io::Error) -> Self {
+        DecodeError::DecompressionError(err)
+    }
+}
+
 impl ScscFile<'_> {
     /// Decrypts the data and decompress the payload data
-    // TODO: Add error handling
-    pub fn decode(&self) -> Vec<u8> {
+    pub fn decode(&self) -> Result<Vec<u8>, DecodeError> {
         let mut buf_decryption: Vec<u8> = vec![0; self.data.len()];
+        // There shouldn't be any error when initializing the decryptor, since the key and IV are of fixed size.
         let cipher = Aes256CbcDec::new_from_slices(ENCRYPTION_KEY, self.iv).unwrap();
-        cipher
-            .decrypt_padded_b2b_mut::<NoPadding>(self.data, buf_decryption.as_mut())
-            .unwrap();
+        cipher.decrypt_padded_b2b_mut::<NoPadding>(self.data, buf_decryption.as_mut())?;
         let mut buf_decompression: Vec<u8> = vec![0; self.size as usize];
         let mut decoder = ZlibDecoder::new(buf_decryption.as_slice());
-        decoder.read_exact(&mut buf_decompression).unwrap();
-        buf_decompression
+        decoder.read_exact(&mut buf_decompression)?;
+        Ok(buf_decompression)
     }
 }
 
