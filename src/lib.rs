@@ -5,4 +5,4 @@ pub mod file_type;
 pub mod scsc_file;
 mod scsc_parse;
 #[cfg(feature = "wasm")]
-mod wasm;
+pub mod wasm;
