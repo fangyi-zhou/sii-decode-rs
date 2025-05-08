@@ -16,39 +16,12 @@ use nom::IResult;
 
 use log::{debug, info};
 
-pub struct BsiiFile<'a> {
-    header: &'a [u8], // BSII,
-    version: u32,
-    prototypes: HashMap<u32, Prototype<'a>>,
-    pub data_blocks: Vec<DataBlock<'a>>,
-}
-
-pub struct Prototype<'a> {
-    // valid prototypes only
-    id: u32,
-    pub name: &'a str,
-    pub value_prototypes: Vec<ValuePrototype<'a>>,
-}
-
-#[derive(Debug)]
-pub struct ValuePrototype<'a> {
-    type_id: u32,
-    pub name: &'a str,
-    // enum values are only used when type_id is 0x37
-    pub enum_values: Option<HashMap<u32, &'a str>>,
-}
-
-pub struct DataBlock<'a> {
-    pub type_id: u32,
-    pub id: Id,
-    pub data: Vec<DataValue<'a>>,
-}
-
-#[derive(PartialEq, Debug)]
-pub enum Id {
-    Nameless(u64),
-    Named(Vec<String>),
-}
+use crate::bsii_file::BsiiFile;
+use crate::bsii_file::DataBlock;
+use crate::bsii_file::DataValue;
+use crate::bsii_file::Id;
+use crate::bsii_file::Prototype;
+use crate::bsii_file::ValuePrototype;
 
 impl fmt::Display for Id {
     // https://github.com/TheLazyTomcat/SII_Decrypt/blob/d1cd7921d4667de895288c7227c58df43b63bd21/Source/SII_Decode_Utils.pas#L183
@@ -84,47 +57,6 @@ impl fmt::Display for Id {
             }
         }
     }
-}
-
-/// A "placement" is a tuple of 8 floats, according to
-/// <https://modding.scssoft.com/wiki/Documentation/Engine/Units>
-pub type Placement = (f32, f32, f32, f32, f32, f32, f32, f32);
-
-// TODO: Refactor this code so that singletons and vectors of different types
-// are not duplicated
-#[derive(PartialEq, Debug)]
-pub enum DataValue<'a> {
-    String(&'a str),
-    StringArray(Vec<&'a str>),
-    EncodedString(String),
-    EncodedStringArray(Vec<String>),
-    Float(f32),
-    FloatArray(Vec<f32>),
-    FloatVec2((f32, f32)),
-    FloatVec3((f32, f32, f32)),
-    FloatVec3Array(Vec<(f32, f32, f32)>),
-    Int32Vec3((i32, i32, i32)),
-    Int32Vec3Array(Vec<(i32, i32, i32)>),
-    FloatVec4((f32, f32, f32, f32)),
-    FloatVec4Array(Vec<(f32, f32, f32, f32)>),
-    // Float Vec 7 for version 1 not supported
-    FloatVec8(Placement),
-    FloatVec8Array(Vec<Placement>),
-    Int32(i32),
-    Int32Array(Vec<i32>),
-    UInt32(u32),
-    UInt32Array(Vec<u32>),
-    UInt16(u16),
-    UInt16Array(Vec<u16>),
-    Int64(i64),
-    Int64Array(Vec<i64>),
-    UInt64(u64),
-    UInt64Array(Vec<u64>),
-    Bool(bool),
-    BoolArray(Vec<bool>),
-    Enum(u32),
-    Id(Id),
-    IdArray(Vec<Id>),
 }
 
 impl DataValue<'_> {
@@ -176,7 +108,7 @@ pub enum ParseError {
 }
 
 impl<'a> BsiiFile<'a> {
-    pub fn from_content(content: &'a [u8]) -> Result<Self, ParseError> {
+    pub fn parse(content: &'a [u8]) -> Result<Self, ParseError> {
         match bsii_parser(content).finish() {
             Ok((_, bsii_file)) => Ok(bsii_file),
             Err(error) => {
@@ -189,7 +121,7 @@ impl<'a> BsiiFile<'a> {
         }
     }
 
-    pub fn get_prototype(&self, id: u32) -> Option<&Prototype<'a>> {
+    pub(crate) fn get_prototype(&self, id: u32) -> Option<&Prototype<'a>> {
         self.prototypes.get(&id)
     }
 }

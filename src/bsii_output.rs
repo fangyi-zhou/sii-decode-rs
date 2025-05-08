@@ -1,9 +1,9 @@
 use std::{fmt::Write, iter::zip};
 
+use crate::bsii_file::{BsiiFile, DataBlock, DataValue, Prototype, ValuePrototype};
+
 /// Output the parsed BSII format into textual format
 /// Reference: https://modding.scssoft.com/wiki/Documentation/Engine/Units
-use crate::bsii_decode::{BsiiFile, DataBlock, DataValue, Prototype, ValuePrototype};
-
 fn write_string<W: Write>(f: &mut W, data: &str) -> std::fmt::Result {
     // If the string consists of only digits, alphabetic characters, and underscores,
     // then it should be written without quotes
@@ -306,10 +306,13 @@ fn write_bsii<W: Write>(f: &mut W, bsii: &BsiiFile) -> std::fmt::Result {
     Ok(())
 }
 
-pub fn bsii_to_siin(bsii: &BsiiFile) -> String {
-    let mut output = String::new();
-    write_bsii(&mut output, bsii).unwrap();
-    output
+impl BsiiFile<'_> {
+    /// Write the BSII file to a SIIN string
+    pub fn to_siin(&self) -> String {
+        let mut output = String::new();
+        write_bsii(&mut output, self).unwrap();
+        output
+    }
 }
 
 mod tests {
