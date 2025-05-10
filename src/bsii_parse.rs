@@ -13,7 +13,7 @@ use nom::sequence::{pair, tuple};
 use nom::Finish;
 use nom::IResult;
 
-use log::{debug, info};
+use log::debug;
 
 use crate::bsii_file::BsiiFile;
 use crate::bsii_file::DataBlock;
@@ -68,6 +68,7 @@ impl DataValue<'_> {
 pub enum ParseError {
     InvalidHeader,
     InvalidInput,
+    UnsupportedVersion,
 }
 
 impl<'a> BsiiFile<'a> {
@@ -75,9 +76,17 @@ impl<'a> BsiiFile<'a> {
         match bsii_parser(content).finish() {
             Ok((_, bsii_file)) => Ok(bsii_file),
             Err(error) => {
-                if error.input == content {
+                if error.input.len() == content.len() {
+                    // If the error input is the same as the original input, it means that the header
+                    // is invalid
                     Err(ParseError::InvalidHeader)
+                } else if error.input.len() == content.len() - 8
+                    && error.code == nom::error::ErrorKind::Fail
+                {
+                    // We got a `fail` from checking the version
+                    Err(ParseError::UnsupportedVersion)
                 } else {
+                    print!("Error: {:?}", error);
                     Err(ParseError::InvalidInput)
                 }
             }
@@ -120,7 +129,7 @@ fn bsii_parser(input: &[u8]) -> IResult<&[u8], BsiiFile<'_>> {
                 ));
             } else {
                 let (next_input, prototype) = prototype_parser(loop_input)?;
-                info!("Parsed prototype {}", prototype.name);
+                debug!("Parsed prototype {}", prototype.name);
                 prototypes.insert(prototype.id, prototype);
                 loop_input = next_input;
             }
@@ -176,7 +185,7 @@ fn value_prototype_parser(input: &[u8]) -> IResult<&[u8], ValuePrototype<'_>> {
         } else {
             (input, None)
         };
-        info!("Parsed prototype value {} type_id {:x}", name, type_id);
+        debug!("Parsed prototype value {} type_id {:x}", name, type_id);
         Ok((
             input,
             ValuePrototype {
@@ -575,7 +584,7 @@ mod tests {
     }
 
     #[test]
-    fn it_works() {
+    fn bsii_parser_works() {
         // From https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Documents/Binary%20SII%20-%20Format.txt
         let test_data: &[u8] = &[
             0x42, 0x53, 0x49, 0x49, // file signature
@@ -629,6 +638,29 @@ mod tests {
                 assert_eq!(bsiifile.data_blocks.len(), 2);
             }
             Err(err) => panic!("Failed to parse, {}", err),
+        }
+    }
+
+    #[test]
+    fn bsii_parser_raises_error_on_invalid_header() {
+        let test_data: &[u8] = &[0x42, 0x53, 0x49, 0x00];
+        match BsiiFile::parse(test_data) {
+            Ok(_) => panic!("Should have raised an error"),
+            Err(ParseError::InvalidHeader) => {}
+            Err(err) => panic!("Should have raised an InvalidHeader error, got {:?}", err),
+        }
+    }
+
+    #[test]
+    fn bsii_parser_raises_error_on_unsupported_version() {
+        let test_data: &[u8] = &[0x42, 0x53, 0x49, 0x49, 0x01, 0x00, 0x00, 0x00];
+        match BsiiFile::parse(test_data) {
+            Ok(_) => panic!("Should have raised an error"),
+            Err(ParseError::UnsupportedVersion) => {}
+            Err(err) => panic!(
+                "Should have raised an UnsupportedVersion error, got {:?}",
+                err
+            ),
         }
     }
 }
