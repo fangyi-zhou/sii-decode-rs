@@ -2,6 +2,9 @@
 name = "sii-decode-rs"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "A Rust library for decoding SII files used in Euro Truck Simulator 2 and American Truck Simulator."
+repository = "https://github.com/fangyi-zhou/sii-decode-rs"
 
 [lib]
 name = "sii_decode"
