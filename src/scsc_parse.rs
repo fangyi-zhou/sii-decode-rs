@@ -77,4 +77,35 @@ mod tests {
             Err(err) => panic!("Failed to parse, {}", err),
         }
     }
+
+    #[test]
+    fn parser_raises_error_with_wrong_magic_bytes() {
+        let test_data: &[u8] = &[
+            0xde, 0xad, 0xbe, 0xef, // wrong header
+        ];
+        match ScscFile::parse(test_data) {
+            Ok(_) => panic!("Should have raised an error"),
+            Err(err) => match err {
+                ParseError::InvalidHeader => {}
+                _ => panic!("Should have raised an InvalidHeader error"),
+            },
+        }
+    }
+
+    #[test]
+    fn parser_raises_error_with_truncated_input() {
+        let test_data: &[u8] = &[
+            0x53, 0x63, 0x73, 0x43, // ScsC header
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x10, 0x11, 0x12, 0x13,
+            0x14,
+            // truncated input
+        ];
+        match ScscFile::parse(test_data) {
+            Ok(_) => panic!("Should have raised an error"),
+            Err(err) => match err {
+                ParseError::InvalidInput => {}
+                _ => panic!("Should have raised an InvalidInput error"),
+            },
+        }
+    }
 }
