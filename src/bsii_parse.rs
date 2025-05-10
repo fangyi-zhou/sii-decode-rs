@@ -653,6 +653,7 @@ mod tests {
 
     #[test]
     fn bsii_parser_raises_error_on_unsupported_version() {
+        // Version 1 is not supported
         let test_data: &[u8] = &[0x42, 0x53, 0x49, 0x49, 0x01, 0x00, 0x00, 0x00];
         match BsiiFile::parse(test_data) {
             Ok(_) => panic!("Should have raised an error"),
@@ -661,6 +662,17 @@ mod tests {
                 "Should have raised an UnsupportedVersion error, got {:?}",
                 err
             ),
+        }
+    }
+
+    #[test]
+    fn bsii_parser_raises_error_on_invalid_input() {
+        // File is incomplete
+        let test_data: &[u8] = &[0x42, 0x53, 0x49, 0x49, 0x02, 0x00, 0x00, 0x00];
+        match BsiiFile::parse(test_data) {
+            Ok(_) => panic!("Should have raised an error"),
+            Err(ParseError::InvalidInput) => {}
+            Err(err) => panic!("Should have raised an InvalidInput error, got {:?}", err),
         }
     }
 }
