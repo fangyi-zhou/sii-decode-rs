@@ -3,7 +3,6 @@
 //! <https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Documents/Binary%20SII%20-%20Types.txt>
 
 use std::collections::HashMap;
-use std::fmt;
 use std::str;
 
 use nom::bytes::complete::{tag, take};
@@ -22,42 +21,6 @@ use crate::bsii_file::DataValue;
 use crate::bsii_file::Id;
 use crate::bsii_file::Prototype;
 use crate::bsii_file::ValuePrototype;
-
-impl fmt::Display for Id {
-    // https://github.com/TheLazyTomcat/SII_Decrypt/blob/d1cd7921d4667de895288c7227c58df43b63bd21/Source/SII_Decode_Utils.pas#L183
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            Id::Nameless(id) => {
-                write!(f, "_nameless")?;
-                if *id == 0 {
-                    write!(f, ".0")?;
-                } else {
-                    let mut bit_shift = 48;
-                    let mut has_first_part = false;
-                    while bit_shift >= 0 {
-                        let mask = 0xffff << bit_shift;
-                        let part = ((*id & mask) >> bit_shift) as u16;
-                        bit_shift -= 16;
-                        if !has_first_part && part != 0 {
-                            has_first_part = true;
-                            write!(f, ".{:x}", part)?;
-                        } else if has_first_part {
-                            write!(f, ".{:04x}", part)?;
-                        }
-                    }
-                }
-                Ok(())
-            }
-            Id::Named(parts) => {
-                if parts.is_empty() {
-                    write!(f, "null")
-                } else {
-                    write!(f, "{}", parts.join("."))
-                }
-            }
-        }
-    }
-}
 
 impl DataValue<'_> {
     pub fn is_array(&self) -> bool {
@@ -667,19 +630,5 @@ mod tests {
             }
             Err(err) => panic!("Failed to parse, {}", err),
         }
-    }
-
-    #[test]
-    fn id_print_test() {
-        let id = Id::Nameless(0x0807060504030201u64);
-        assert_eq!(id.to_string(), "_nameless.807.0605.0403.0201");
-        let id = Id::Nameless(0x060504030201u64);
-        assert_eq!(id.to_string(), "_nameless.605.0403.0201");
-        let id = Id::Nameless(0);
-        assert_eq!(id.to_string(), "_nameless.0");
-        let id = Id::Named(vec!["first".to_string(), "second".to_string()]);
-        assert_eq!(id.to_string(), "first.second");
-        let id = Id::Named(vec![]);
-        assert_eq!(id.to_string(), "null");
     }
 }
