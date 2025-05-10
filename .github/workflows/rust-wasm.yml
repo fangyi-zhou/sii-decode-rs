@@ -19,4 +19,9 @@ jobs:
     - name: Build
       run: wasm-pack build --verbose --all-features
     - name: Run tests
-      run: wasm-pack test --firefox --headless --verbose --all-features 
+      run: wasm-pack test --firefox --headless --verbose --all-features
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: wasm-pack-artifacts
+        path: pkg/*
