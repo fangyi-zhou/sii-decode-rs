@@ -1,6 +1,9 @@
-use std::{fmt::Write, iter::zip};
+use std::{
+    fmt::{self, Write},
+    iter::zip,
+};
 
-use crate::bsii_file::{BsiiFile, DataBlock, DataValue, Prototype, ValuePrototype};
+use crate::bsii_file::{BsiiFile, DataBlock, DataValue, Id, Prototype, ValuePrototype};
 
 /// Output the parsed BSII format into textual format
 /// Reference: https://modding.scssoft.com/wiki/Documentation/Engine/Units
@@ -279,7 +282,6 @@ fn write_data_block<W: Write>(
         "Data blocks should have the same length as the protytypes"
     );
     for (data, value_prototype) in zip(&data_block.data, &prototype.value_prototypes) {
-        // TODO: Format data according to the type
         write!(f, "  {}: ", value_prototype.name)?;
         if data.is_array() {
             // First write the length of the array
@@ -315,7 +317,57 @@ impl BsiiFile<'_> {
     }
 }
 
+impl fmt::Display for Id {
+    // https://github.com/TheLazyTomcat/SII_Decrypt/blob/d1cd7921d4667de895288c7227c58df43b63bd21/Source/SII_Decode_Utils.pas#L183
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+            Id::Nameless(id) => {
+                write!(f, "_nameless")?;
+                if *id == 0 {
+                    write!(f, ".0")?;
+                } else {
+                    let mut bit_shift = 48;
+                    let mut has_first_part = false;
+                    while bit_shift >= 0 {
+                        let mask = 0xffff << bit_shift;
+                        let part = ((*id & mask) >> bit_shift) as u16;
+                        bit_shift -= 16;
+                        if !has_first_part && part != 0 {
+                            has_first_part = true;
+                            write!(f, ".{:x}", part)?;
+                        } else if has_first_part {
+                            write!(f, ".{:04x}", part)?;
+                        }
+                    }
+                }
+                Ok(())
+            }
+            Id::Named(parts) => {
+                if parts.is_empty() {
+                    write!(f, "null")
+                } else {
+                    write!(f, "{}", parts.join("."))
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
-    // TODO
+
+    #[test]
+    fn id_print_test() {
+        let id = Id::Nameless(0x0807060504030201u64);
+        assert_eq!(id.to_string(), "_nameless.807.0605.0403.0201");
+        let id = Id::Nameless(0x060504030201u64);
+        assert_eq!(id.to_string(), "_nameless.605.0403.0201");
+        let id = Id::Nameless(0);
+        assert_eq!(id.to_string(), "_nameless.0");
+        let id = Id::Named(vec!["first".to_string(), "second".to_string()]);
+        assert_eq!(id.to_string(), "first.second");
+        let id = Id::Named(vec![]);
+        assert_eq!(id.to_string(), "null");
+    }
 }
