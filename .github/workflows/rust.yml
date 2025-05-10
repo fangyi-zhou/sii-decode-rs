@@ -29,5 +29,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: cargo-artifacts
-        paths: |
-          target/package/*.crate
+        path: target/package/*.crate
