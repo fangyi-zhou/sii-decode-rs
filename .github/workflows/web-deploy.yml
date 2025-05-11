@@ -1,0 +1,34 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: gh-pages-deployment
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up wasm pack
+      run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+    - name: Build
+      run: wasm-pack build --verbose --all-features
+    - name: Build website
+      run: |
+        cd web
+        yarn
+        yarn run build
+    - name: Deploy to GitHub Pages
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        folder: web/dist
+        token: ${{ secrets.DEPLOYMENT_ACCESS_TOKEN }}
+        branch: main
+        repository-name: sii-decode/sii-decode.github.io
+        single-commit: true
+        force: true
+        clean: true
