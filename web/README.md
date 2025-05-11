@@ -23,8 +23,8 @@ $ cd ..
 ```
 
 1. The Web Assembly package should be available at `pkg` directory. Enter the
-`web directory` and install dependencies. Also, link the built Web Assembly
-package so that any changes can be picked up.
+   `web directory` and install dependencies. Also, link the built Web Assembly
+   package so that any changes can be picked up.
 
 ```bash
 $ cd web

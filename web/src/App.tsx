@@ -60,12 +60,24 @@ function App() {
       <h1>SII Decode (beta)</h1>
       <p>Select your file</p>
       <div>
-        <input type="file" id="file" onChange={handleFile} />
+        <input
+          type="file"
+          id="file"
+          data-testid="file-upload"
+          onChange={handleFile}
+        />
       </div>
       <br />
-      <textarea id="output" rows={20} cols={50} ref={textAreaRef} />
+      <textarea
+        id="output"
+        rows={20}
+        cols={50}
+        ref={textAreaRef}
+        data-testid="file-display"
+        readOnly
+      />
       <div>
-        <a href="#" ref={downloadRef}>
+        <a href="#" ref={downloadRef} data-testid="file-download">
           Download
         </a>
       </div>
