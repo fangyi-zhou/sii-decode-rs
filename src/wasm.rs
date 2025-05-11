@@ -4,9 +4,12 @@ use crate::file_type::decode_until_siin;
 
 #[wasm_bindgen]
 pub fn decode(input: &[u8]) -> Result<String, JsError> {
-    if let Some(result) = decode_until_siin(input) {
-        Ok(String::from_utf8(result).unwrap())
-    } else {
-        Err(JsError::new("Failed to process input"))
+    match decode_until_siin(input) {
+        Ok(decoded) => {
+            let decoded_str = String::from_utf8(decoded)
+                .map_err(|_| JsError::new("Failed to convert to UTF-8"))?;
+            Ok(decoded_str)
+        }
+        Err(err) => Err(JsError::new(&format!("Decoding error: {}", err))),
     }
 }
