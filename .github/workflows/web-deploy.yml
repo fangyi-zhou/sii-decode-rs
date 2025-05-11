@@ -12,6 +12,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: gh-pages-deployment
     steps:
     - uses: actions/checkout@v4
     - name: Set up wasm pack
@@ -23,8 +24,13 @@ jobs:
         cd web
         yarn
         yarn run build
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
+    - name: Deploy to GitHub Pages
+      uses: JamesIves/github-pages-deploy-action@v4
       with:
-        name: web-artifacts
-        path: web/dist/*
+        folder: web/dist
+        token: {{ secrets.DEPLOYMENT_ACCESS_TOKEN }}
+        branch: main
+        repository-name: sii-decode/sii-decode.github.io
+        single-commit: true
+        force: true
+        clean: true
