@@ -26,6 +26,7 @@ jobs:
     - name: Run tests
       run: |
         cd web
+        yarn playwright install
         yarn run test
     - name: Run linter
       run: |
