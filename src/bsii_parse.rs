@@ -71,6 +71,16 @@ pub enum ParseError {
     UnsupportedVersion,
 }
 
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParseError::InvalidHeader => write!(f, "Invalid header"),
+            ParseError::InvalidInput => write!(f, "Invalid input"),
+            ParseError::UnsupportedVersion => write!(f, "Unsupported version"),
+        }
+    }
+}
+
 impl<'a> BsiiFile<'a> {
     pub fn parse(content: &'a [u8]) -> Result<Self, ParseError> {
         match bsii_parser(content).finish() {

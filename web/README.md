@@ -14,10 +14,21 @@ $ cargo install wasm-pack
 $ wasm-pack build --all-features
 ```
 
-1. The Web Assembly package should be available at `pkg` directory. Enter the `web directory` and install dependencies.
+1. Register the built package for development
+
+```bash
+$ cd pkg
+$ yarn link
+$ cd ..
+```
+
+1. The Web Assembly package should be available at `pkg` directory. Enter the
+   `web directory` and install dependencies. Also, link the built Web Assembly
+   package so that any changes can be picked up.
 
 ```bash
 $ cd web
+$ yarn link sii-decode-rs
 $ yarn
 ```
 

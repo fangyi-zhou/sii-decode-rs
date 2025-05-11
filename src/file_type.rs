@@ -1,7 +1,9 @@
 //! Handles file types for SII files.
 
-use log::{error, info};
+use log::info;
 
+use crate::bsii_parse;
+use crate::scsc_file;
 use crate::{bsii_file::BsiiFile, scsc_file::ScscFile};
 
 /// FileType enum representing different file types.
@@ -32,34 +34,70 @@ pub fn detect_file_type(file_content: &[u8]) -> Option<FileType> {
     }
 }
 
+#[derive(Debug)]
+pub enum DecodeError {
+    /// Error when the file type is not recognized.
+    UnknownFileType,
+    /// Error when Scsc file parsing fails.
+    ScscParse(scsc_file::ParseError),
+    /// Error when Scsc file decoding fails.
+    ScscDecode(scsc_file::DecodeError),
+    /// Error when BSII file parsing fails.
+    BsiiParse(bsii_parse::ParseError),
+}
+
+impl From<scsc_file::ParseError> for DecodeError {
+    fn from(err: scsc_file::ParseError) -> Self {
+        DecodeError::ScscParse(err)
+    }
+}
+
+impl From<scsc_file::DecodeError> for DecodeError {
+    fn from(err: scsc_file::DecodeError) -> Self {
+        DecodeError::ScscDecode(err)
+    }
+}
+
+impl From<bsii_parse::ParseError> for DecodeError {
+    fn from(err: bsii_parse::ParseError) -> Self {
+        DecodeError::BsiiParse(err)
+    }
+}
+
+impl std::fmt::Display for DecodeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DecodeError::UnknownFileType => write!(f, "Unknown file type"),
+            DecodeError::ScscParse(err) => write!(f, "Scsc parse error: {}", err),
+            DecodeError::ScscDecode(err) => write!(f, "Scsc decode error: {}", err),
+            DecodeError::BsiiParse(err) => write!(f, "BSII parse error: {}", err),
+        }
+    }
+}
+
 /// Given a supported file, decode until the textual SII format is reached.
-pub fn decode_until_siin(file_content: &[u8]) -> Option<Vec<u8>> {
+pub fn decode_until_siin(file_content: &[u8]) -> Result<Vec<u8>, DecodeError> {
     let content = file_content;
-    let file_type = detect_file_type(file_content)?;
+    let file_type = detect_file_type(file_content).ok_or(DecodeError::UnknownFileType)?;
     info!("Obtained file type: {:?}", file_type);
     match file_type {
         FileType::Scsc => {
-            let scsc_file = ScscFile::parse(content).unwrap();
-            let decoded = scsc_file.decode();
-            if let Ok(decoded_content) = decoded {
-                match detect_file_type(&decoded_content)? {
-                    FileType::Siin => Some(decoded_content),
-                    FileType::Bsii => {
-                        let bsii_file = BsiiFile::parse(&decoded_content).unwrap();
-                        Some(bsii_file.to_siin().as_bytes().to_vec())
-                    }
-                    _ => unreachable!("Unexpected file type after decoding"),
+            let scsc_file = ScscFile::parse(content)?;
+            let decoded_content = scsc_file.decode()?;
+            match detect_file_type(&decoded_content).ok_or(DecodeError::UnknownFileType)? {
+                FileType::Siin => Ok(decoded_content),
+                FileType::Bsii => {
+                    let bsii_file = BsiiFile::parse(&decoded_content)?;
+                    Ok(bsii_file.to_siin().as_bytes().to_vec())
                 }
-            } else {
-                error!("Failed to decode content");
-                None
+                _ => unreachable!("Unexpected file type after decoding"),
             }
         }
         FileType::Bsii => {
-            let bsii_file = BsiiFile::parse(content).unwrap();
-            Some(bsii_file.to_siin().into())
+            let bsii_file = BsiiFile::parse(content)?;
+            Ok(bsii_file.to_siin().into())
         }
-        FileType::Siin => Some(content.to_vec()),
+        FileType::Siin => Ok(content.to_vec()),
     }
 }
 

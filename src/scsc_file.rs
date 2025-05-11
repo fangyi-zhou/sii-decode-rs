@@ -31,10 +31,28 @@ pub enum ParseError {
     InvalidInput,
 }
 
+impl std::fmt::Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParseError::InvalidHeader => write!(f, "Invalid header"),
+            ParseError::InvalidInput => write!(f, "Invalid input"),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum DecodeError {
     DecryptionError(UnpadError),
     DecompressionError(io::Error),
+}
+
+impl std::fmt::Display for DecodeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DecodeError::DecryptionError(err) => write!(f, "Decryption error: {}", err),
+            DecodeError::DecompressionError(err) => write!(f, "Decompression error: {}", err),
+        }
+    }
 }
 
 impl From<UnpadError> for DecodeError {

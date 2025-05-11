@@ -23,6 +23,15 @@ jobs:
         cd web
         yarn
         yarn run build
+    - name: Run tests
+      run: |
+        cd web
+        yarn playwright install
+        yarn run test
+    - name: Run linter
+      run: |
+        cd web
+        yarn run lint
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
