@@ -11,6 +11,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "comlink": "^4.4.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "sii-decode-rs": "file:../pkg"
@@ -35,6 +36,7 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
     "vite": "^6.3.5",
+    "vite-plugin-comlink": "^5.1.0",
     "vite-plugin-top-level-await": "^1.5.0",
     "vite-plugin-wasm": "^3.4.1",
     "vitest": "^3.1.3"

@@ -1,11 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
-import { decode } from "sii-decode-rs";
 
 function App() {
   const [file, setFile] = useState<File | null>(null);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const downloadRef = useRef<HTMLAnchorElement>(null);
+
+  const decodeWorker = new ComlinkWorker<typeof import("./decodeWorker")>(
+    new URL("./decodeWorker.ts", import.meta.url),
+    {
+      type: "module",
+    },
+  );
 
   const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -31,26 +37,30 @@ function App() {
       reader.onload = (e) => {
         const arrayBuffer = e.target?.result as ArrayBuffer;
         const bytes = new Uint8Array(arrayBuffer);
-        try {
-          const decoded = decode(bytes);
-          if (textAreaRef.current) {
-            textAreaRef.current.value = decoded;
+        // console.log("Am I here?");
+        decodeWorker.run(bytes).then((result) => {
+          // console.log(result);
+          if (result.status === "ok") {
+            if (textAreaRef.current) {
+              textAreaRef.current.value = result.decoded;
+            }
+            if (downloadRef.current) {
+              const blob = new Blob([result.decoded], { type: "text/plain" });
+              const url = URL.createObjectURL(blob);
+              downloadRef.current.href = url;
+              downloadRef.current.download = file.name.replace(
+                ".sii",
+                "-decoded.sii",
+              );
+            }
+          } else {
+            if (textAreaRef.current) {
+              textAreaRef.current.value = result.error;
+            }
           }
-          if (downloadRef.current) {
-            const blob = new Blob([decoded], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            downloadRef.current.href = url;
-            downloadRef.current.download = file.name.replace(
-              ".sii",
-              "-decoded.sii",
-            );
-          }
-        } catch (error) {
-          if (textAreaRef.current && error instanceof Error) {
-            textAreaRef.current.value = error.toString();
-          }
-        }
+        });
       };
+      // console.log("Am I here too?");
       reader.readAsArrayBuffer(file);
     }
   }, [file]);
