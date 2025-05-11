@@ -7,24 +7,27 @@ function App() {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const downloadRef = useRef<HTMLAnchorElement>(null);
 
-  const handleFile = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) {
-      return;
-    }
-    const selectedFile = event.target.files[0];
-    if (textAreaRef.current) {
-      // Clear the text area
-      textAreaRef.current.value = "";
-    }
-    if (downloadRef.current) {
-      // Clear the download link
-      if (downloadRef.current.href !== "#") {
-        URL.revokeObjectURL(downloadRef.current.href);
+  const handleFile = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
       }
-      downloadRef.current.href = "#";
-    }
-    setFile(selectedFile);
-  }, [setFile, textAreaRef, downloadRef]);
+      const selectedFile = event.target.files[0];
+      if (textAreaRef.current) {
+        // Clear the text area
+        textAreaRef.current.value = "Decoding...";
+      }
+      if (downloadRef.current) {
+        // Clear the download link
+        if (downloadRef.current.href !== "#") {
+          URL.revokeObjectURL(downloadRef.current.href);
+        }
+        downloadRef.current.href = "#";
+      }
+      setFile(selectedFile);
+    },
+    [setFile, textAreaRef, downloadRef],
+  );
 
   useEffect(() => {
     if (!file) {
@@ -59,8 +62,8 @@ function App() {
 
   return (
     <>
-      <h1>SII Decode (beta)</h1>
-      <p>Select your file</p>
+      <h1>SII Decode</h1>
+      <p>Select a SII file to decode</p>
       <div>
         <input
           type="file"
@@ -76,11 +79,12 @@ function App() {
         cols={50}
         ref={textAreaRef}
         data-testid="file-display"
+        spellCheck="false"
         readOnly
       />
       <div>
         <a href="#" ref={downloadRef} data-testid="file-download">
-          Download
+          Download decoded file
         </a>
       </div>
       <p className="footer">
