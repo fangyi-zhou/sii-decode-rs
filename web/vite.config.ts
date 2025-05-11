@@ -13,6 +13,13 @@ export default defineConfig({
       "tests/vitest-cleanup-after-each.ts",
     ],
     environment: "happy-dom",
-    pool: 'typescript',
+    browser: {
+      provider: 'playwright',
+      enabled: true,
+      headless: true,
+      instances: [
+        { browser: 'firefox' },
+      ],
+    },
   },
 });
