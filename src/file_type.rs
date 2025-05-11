@@ -39,28 +39,28 @@ pub enum DecodeError {
     /// Error when the file type is not recognized.
     UnknownFileType,
     /// Error when Scsc file parsing fails.
-    ScscParseError(scsc_file::ParseError),
+    ScscParse(scsc_file::ParseError),
     /// Error when Scsc file decoding fails.
-    ScscDecodeError(scsc_file::DecodeError),
+    ScscDecode(scsc_file::DecodeError),
     /// Error when BSII file parsing fails.
-    BsiiParseError(bsii_parse::ParseError),
+    BsiiParse(bsii_parse::ParseError),
 }
 
 impl From<scsc_file::ParseError> for DecodeError {
     fn from(err: scsc_file::ParseError) -> Self {
-        DecodeError::ScscParseError(err)
+        DecodeError::ScscParse(err)
     }
 }
 
 impl From<scsc_file::DecodeError> for DecodeError {
     fn from(err: scsc_file::DecodeError) -> Self {
-        DecodeError::ScscDecodeError(err)
+        DecodeError::ScscDecode(err)
     }
 }
 
 impl From<bsii_parse::ParseError> for DecodeError {
     fn from(err: bsii_parse::ParseError) -> Self {
-        DecodeError::BsiiParseError(err)
+        DecodeError::BsiiParse(err)
     }
 }
 
@@ -68,9 +68,9 @@ impl std::fmt::Display for DecodeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DecodeError::UnknownFileType => write!(f, "Unknown file type"),
-            DecodeError::ScscParseError(err) => write!(f, "Scsc parse error: {}", err),
-            DecodeError::ScscDecodeError(err) => write!(f, "Scsc decode error: {}", err),
-            DecodeError::BsiiParseError(err) => write!(f, "BSII parse error: {}", err),
+            DecodeError::ScscParse(err) => write!(f, "Scsc parse error: {}", err),
+            DecodeError::ScscDecode(err) => write!(f, "Scsc decode error: {}", err),
+            DecodeError::BsiiParse(err) => write!(f, "BSII parse error: {}", err),
         }
     }
 }
