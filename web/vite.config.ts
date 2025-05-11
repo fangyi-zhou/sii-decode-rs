@@ -13,5 +13,6 @@ export default defineConfig({
       "tests/vitest-cleanup-after-each.ts",
     ],
     environment: "happy-dom",
+    pool: 'typescript',
   },
 });
