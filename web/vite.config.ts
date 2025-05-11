@@ -13,9 +13,5 @@ export default defineConfig({
       "tests/vitest-cleanup-after-each.ts",
     ],
     environment: "happy-dom",
-    // https://github.com/vitest-dev/vitest/issues/2150
-    deps: {
-      inline: [/\?url$/],
-    },
   },
 });
