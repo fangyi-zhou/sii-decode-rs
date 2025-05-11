@@ -14,12 +14,10 @@ export default defineConfig({
     ],
     environment: "happy-dom",
     browser: {
-      provider: 'playwright',
+      provider: "playwright",
       enabled: true,
       headless: true,
-      instances: [
-        { browser: 'firefox' },
-      ],
+      instances: [{ browser: "firefox" }],
     },
   },
 });
