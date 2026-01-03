@@ -1,8 +1,56 @@
-import { test, expect } from "vitest";
+import { test, expect, vi } from "vitest";
 import App from "../src/App";
 import "@testing-library/jest-dom/vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+
+// Mock the worker module
+vi.mock("../src/decode.worker?worker", () => {
+  return {
+    default: class MockWorker {
+      onmessage = null;
+      onerror = null;
+      onmessageerror = null;
+
+      postMessage(data) {
+        // simulate async worker response
+        setTimeout(() => {
+          if (data.type === "decode") {
+            const bytes = new Uint8Array(data.buffer);
+            const text = new TextDecoder().decode(bytes);
+
+            // check if valid sii
+            if (text.startsWith("SiiN")) {
+              const blob = new Blob([text], { type: "text/plain" });
+              const blobUrl = URL.createObjectURL(blob);
+              this.onmessage?.({
+                data: { type: "success", result: text, blobUrl },
+              });
+            } else {
+              this.onmessage?.({
+                data: { type: "error", message: "Invalid SII file format" },
+              });
+            }
+          }
+        }, 10);
+      }
+
+      addEventListener(type, handler) {
+        if (type === "message") {
+          this.onmessage = handler;
+        }
+      }
+
+      removeEventListener(type, handler) {
+        if (type === "message" && this.onmessage === handler) {
+          this.onmessage = null;
+        }
+      }
+
+      terminate() {}
+    },
+  };
+});
 
 test("App can render", () => {
   render(<App />);
