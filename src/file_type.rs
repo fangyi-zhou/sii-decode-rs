@@ -75,6 +75,27 @@ impl std::fmt::Display for DecodeError {
     }
 }
 
+/// Given a supported file, decode until the BSII format is reached (returning raw bytes).
+/// This is useful for further processing of the structured data.
+pub fn decode_to_bsii(file_content: &[u8]) -> Result<Vec<u8>, DecodeError> {
+    let file_type = detect_file_type(file_content).ok_or(DecodeError::UnknownFileType)?;
+    match file_type {
+        FileType::Scsc => {
+            let scsc_file = ScscFile::parse(file_content)?;
+            let decoded = scsc_file.decode()?;
+            // If the decoded content is already BSII, return it
+            // If it's SIIN (text), we can't convert back to BSII easily
+            match detect_file_type(&decoded) {
+                Some(FileType::Bsii) => Ok(decoded),
+                Some(FileType::Siin) => Ok(decoded), // Return as-is for SIIN
+                _ => Err(DecodeError::UnknownFileType),
+            }
+        }
+        FileType::Bsii => Ok(file_content.to_vec()),
+        FileType::Siin => Ok(file_content.to_vec()),
+    }
+}
+
 /// Given a supported file, decode until the textual SII format is reached.
 pub fn decode_until_siin(file_content: &[u8]) -> Result<Vec<u8>, DecodeError> {
     let content = file_content;
