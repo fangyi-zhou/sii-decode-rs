@@ -72,6 +72,14 @@ pub enum JobType {
     External,
     /// World of Trucks job
     WorldOfTrucks,
+    /// Special oversized cargo transport
+    SpecialOversize,
+    /// Free roam (damage/event tracking, not a real delivery)
+    FreeRoam,
+    /// Company job (owned trailers)
+    Company,
+    /// Online company job
+    OnlineCompany,
     /// Unknown job type
     Unknown(String),
 }
@@ -83,6 +91,10 @@ impl From<&str> for JobType {
             "cargo" => JobType::Cargo,
             "external" => JobType::External,
             "wot" => JobType::WorldOfTrucks,
+            "spec_oversize" => JobType::SpecialOversize,
+            "freerm" => JobType::FreeRoam,
+            "compn" => JobType::Company,
+            "on_compn" => JobType::OnlineCompany,
             _ => JobType::Unknown(s.to_string()),
         }
     }
@@ -492,6 +504,10 @@ mod tests {
         assert_eq!(JobType::from("cargo"), JobType::Cargo);
         assert_eq!(JobType::from("external"), JobType::External);
         assert_eq!(JobType::from("wot"), JobType::WorldOfTrucks);
+        assert_eq!(JobType::from("spec_oversize"), JobType::SpecialOversize);
+        assert_eq!(JobType::from("freerm"), JobType::FreeRoam);
+        assert_eq!(JobType::from("compn"), JobType::Company);
+        assert_eq!(JobType::from("on_compn"), JobType::OnlineCompany);
         assert!(matches!(JobType::from("unknown"), JobType::Unknown(_)));
     }
 

@@ -11,7 +11,9 @@ use std::collections::HashMap;
 ///
 /// More details can be found in <https://github.com/TheLazyTomcat/SII_Decrypt/blob/master/Documents/Binary%20SII%20-%20Format.txt>
 pub struct BsiiFile<'a> {
+    #[allow(dead_code)]
     pub(crate) header: &'a [u8], // BSII,
+    #[allow(dead_code)]
     pub(crate) version: u32,
     pub prototypes: HashMap<u32, Prototype<'a>>,
     pub data_blocks: Vec<DataBlock<'a>>,
