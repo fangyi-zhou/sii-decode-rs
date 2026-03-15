@@ -107,5 +107,45 @@ fn main() {
             undamaged_count,
             entries.len()
         );
+
+        // Distance per truck brand (for achievement tracking)
+        println!("\n=== Distance per Truck Brand ===");
+        let mut brand_distance: std::collections::HashMap<String, i64> =
+            std::collections::HashMap::new();
+        let mut brand_count: std::collections::HashMap<String, usize> =
+            std::collections::HashMap::new();
+
+        for entry in &entries {
+            // Extract brand from vehicle string (e.g., "vehicle.renault.t" -> "renault")
+            let brand = entry
+                .vehicle
+                .split('.')
+                .nth(1)
+                .unwrap_or("unknown")
+                .to_string();
+
+            *brand_distance.entry(brand.clone()).or_insert(0) += entry.distance_km;
+            *brand_count.entry(brand).or_insert(0) += 1;
+        }
+
+        // Sort by distance descending
+        let mut brand_stats: Vec<_> = brand_distance.iter().collect();
+        brand_stats.sort_by(|a, b| b.1.cmp(a.1));
+
+        for (brand, distance) in brand_stats {
+            let count = brand_count.get(brand).unwrap_or(&0);
+            let status = if *distance >= 999 { "✓" } else { " " };
+            println!(
+                "  {} {:12} {:>6} km ({} deliveries)",
+                status, brand, distance, count
+            );
+        }
+
+        // Count brands with >= 999 km
+        let qualifying_brands = brand_distance.values().filter(|&&d| d >= 999).count();
+        println!(
+            "\nBrands with 999+ km: {}/5 (achievement requirement)",
+            qualifying_brands
+        );
     }
 }

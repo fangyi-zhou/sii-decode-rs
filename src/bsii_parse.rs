@@ -103,7 +103,7 @@ impl<'a> BsiiFile<'a> {
         }
     }
 
-    pub(crate) fn get_prototype(&self, id: u32) -> Option<&Prototype<'a>> {
+    pub fn get_prototype(&self, id: u32) -> Option<&Prototype<'a>> {
         self.prototypes.get(&id)
     }
 }

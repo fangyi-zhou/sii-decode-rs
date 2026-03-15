@@ -3,7 +3,7 @@
 //! This module provides strongly-typed representations of save file objects
 //! that can be extracted from the generic `DataBlock` structures.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::bsii_file::{BsiiFile, DataBlock, DataValue, Id};
 
@@ -491,6 +491,350 @@ impl SaveDataExt for BsiiFile<'_> {
                     .unwrap_or(false)
             })
             .collect()
+    }
+}
+
+// ============================================================================
+// Achievement Tracking
+// ============================================================================
+
+/// Known truck brands in ETS2/ATS
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TruckBrand {
+    DAF,
+    Iveco,
+    MAN,
+    Mercedes,
+    Renault,
+    Scania,
+    Volvo,
+    /// Unknown or unrecognized brand
+    Unknown(String),
+}
+
+impl TruckBrand {
+    /// Parse brand from vehicle identifier string.
+    /// E.g., "vehicle.renault.t" -> Renault
+    pub fn from_vehicle_id(vehicle_id: &str) -> Self {
+        let brand_str = vehicle_id.split('.').nth(1).unwrap_or("");
+        match brand_str.to_lowercase().as_str() {
+            "daf" => TruckBrand::DAF,
+            "iveco" => TruckBrand::Iveco,
+            "man" => TruckBrand::MAN,
+            "mercedes" => TruckBrand::Mercedes,
+            "renault" => TruckBrand::Renault,
+            "scania" => TruckBrand::Scania,
+            "volvo" => TruckBrand::Volvo,
+            "" => TruckBrand::Unknown("empty".to_string()),
+            other => TruckBrand::Unknown(other.to_string()),
+        }
+    }
+
+    /// Get the display name for the brand
+    pub fn name(&self) -> &str {
+        match self {
+            TruckBrand::DAF => "DAF",
+            TruckBrand::Iveco => "Iveco",
+            TruckBrand::MAN => "MAN",
+            TruckBrand::Mercedes => "Mercedes",
+            TruckBrand::Renault => "Renault",
+            TruckBrand::Scania => "Scania",
+            TruckBrand::Volvo => "Volvo",
+            TruckBrand::Unknown(s) => s,
+        }
+    }
+}
+
+/// Statistics for a single truck brand
+#[derive(Debug, Clone, Default)]
+pub struct BrandStats {
+    /// Total distance driven during jobs in km
+    pub distance_km: i64,
+    /// Number of deliveries completed
+    pub delivery_count: u32,
+    /// Total revenue earned
+    pub revenue: i64,
+}
+
+/// Tracks the "Drive 999 km with 5 different truck brands" achievement.
+///
+/// Only counts jobs where you use your own truck:
+/// - Company jobs (compn)
+/// - Online company jobs (on_compn)
+/// - Cargo market jobs (cargo)
+/// - External contracts (external)
+///
+/// Does NOT count:
+/// - Quick jobs (quick) - uses company truck
+/// - Free roam (freerm) - not a real job
+/// - Special oversize (spec_oversize) - unclear ownership
+#[derive(Debug, Clone)]
+pub struct BrandDistanceAchievement {
+    /// Distance threshold required per brand (default: 999 km)
+    pub required_distance_km: i64,
+    /// Number of brands required to complete achievement (default: 5)
+    pub required_brand_count: usize,
+    /// Statistics per brand
+    pub brand_stats: HashMap<TruckBrand, BrandStats>,
+}
+
+impl Default for BrandDistanceAchievement {
+    fn default() -> Self {
+        Self {
+            required_distance_km: 999,
+            required_brand_count: 5,
+            brand_stats: HashMap::new(),
+        }
+    }
+}
+
+impl BrandDistanceAchievement {
+    /// Create a new tracker with custom requirements
+    pub fn new(required_distance_km: i64, required_brand_count: usize) -> Self {
+        Self {
+            required_distance_km,
+            required_brand_count,
+            brand_stats: HashMap::new(),
+        }
+    }
+
+    /// Check if a job type counts as using an owned truck
+    pub fn is_owned_truck_job(job_type: &JobType) -> bool {
+        matches!(
+            job_type,
+            JobType::Company | JobType::OnlineCompany | JobType::Cargo | JobType::External
+        )
+    }
+
+    /// Calculate achievement progress from delivery log entries
+    pub fn from_entries(entries: &[DeliveryLogEntry]) -> Self {
+        let mut achievement = Self::default();
+
+        for entry in entries {
+            // Only count jobs where player uses their own truck
+            if !Self::is_owned_truck_job(&entry.job_type) {
+                continue;
+            }
+
+            // Skip entries with empty vehicle
+            if entry.vehicle.is_empty() {
+                continue;
+            }
+
+            let brand = TruckBrand::from_vehicle_id(&entry.vehicle);
+            let stats = achievement.brand_stats.entry(brand).or_default();
+
+            stats.distance_km += entry.distance_km;
+            stats.delivery_count += 1;
+            stats.revenue += entry.revenue;
+        }
+
+        achievement
+    }
+
+    /// Get brands sorted by distance (descending)
+    pub fn brands_by_distance(&self) -> Vec<(&TruckBrand, &BrandStats)> {
+        let mut brands: Vec<_> = self.brand_stats.iter().collect();
+        brands.sort_by(|a, b| b.1.distance_km.cmp(&a.1.distance_km));
+        brands
+    }
+
+    /// Count how many brands have reached the required distance
+    pub fn qualifying_brand_count(&self) -> usize {
+        self.brand_stats
+            .values()
+            .filter(|stats| stats.distance_km >= self.required_distance_km)
+            .count()
+    }
+
+    /// Check if the achievement is complete
+    pub fn is_complete(&self) -> bool {
+        self.qualifying_brand_count() >= self.required_brand_count
+    }
+
+    /// Get progress as a fraction (0.0 to 1.0)
+    pub fn progress(&self) -> f64 {
+        let qualifying = self.qualifying_brand_count();
+        (qualifying as f64 / self.required_brand_count as f64).min(1.0)
+    }
+
+    /// Get detailed progress for each brand
+    pub fn brand_progress(&self, brand: &TruckBrand) -> Option<f64> {
+        self.brand_stats.get(brand).map(|stats| {
+            (stats.distance_km as f64 / self.required_distance_km as f64).min(1.0)
+        })
+    }
+}
+
+/// Categories for the "Experience 8" achievement
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CargoCategory {
+    Machinery,
+    ADR,
+    Container,
+    Refrigerated,
+    Liquid,
+    Fragile,
+    Construction,
+    Bulk,
+}
+
+impl CargoCategory {
+    /// Get the display name for the category
+    pub fn name(&self) -> &'static str {
+        match self {
+            CargoCategory::Machinery => "Machinery",
+            CargoCategory::ADR => "ADR cargo",
+            CargoCategory::Container => "Container",
+            CargoCategory::Refrigerated => "Refrigerated",
+            CargoCategory::Liquid => "Liquid cargo",
+            CargoCategory::Fragile => "Fragile cargo",
+            CargoCategory::Construction => "Construction",
+            CargoCategory::Bulk => "Bulk cargo",
+        }
+    }
+
+    /// Get all categories
+    pub fn all() -> &'static [CargoCategory] {
+        &[
+            CargoCategory::Machinery,
+            CargoCategory::ADR,
+            CargoCategory::Container,
+            CargoCategory::Refrigerated,
+            CargoCategory::Liquid,
+            CargoCategory::Fragile,
+            CargoCategory::Construction,
+            CargoCategory::Bulk,
+        ]
+    }
+}
+
+/// Tracks the "Experience Beats All!" achievement (Complete deliveries with 8 different trailer types).
+#[derive(Debug, Clone, Default)]
+pub struct ExperienceBeatsAllAchievement {
+    /// Completed cargo categories
+    pub completed_categories: HashSet<CargoCategory>,
+    /// Deliveries per category
+    pub category_counts: HashMap<CargoCategory, u32>,
+}
+
+impl ExperienceBeatsAllAchievement {
+    /// Calculate achievement progress from delivery log entries
+    pub fn from_entries(entries: &[DeliveryLogEntry]) -> Self {
+        let mut achievement = Self::default();
+
+        for entry in entries {
+            let cargo_id = entry.cargo_name().unwrap_or("");
+            let categories = get_cargo_categories(cargo_id);
+            
+            for category in categories {
+                achievement.completed_categories.insert(category);
+                *achievement.category_counts.entry(category).or_insert(0) += 1;
+            }
+        }
+
+        achievement
+    }
+
+    /// Check if the achievement is complete
+    pub fn is_complete(&self) -> bool {
+        self.completed_categories.len() >= 8
+    }
+
+    /// Get progress as a fraction (0.0 to 1.0)
+    pub fn progress(&self) -> f64 {
+        (self.completed_categories.len() as f64 / 8.0).min(1.0)
+    }
+}
+
+/// Get categories for a specific cargo ID based on authoritative mapping.
+fn get_cargo_categories(cargo_id: &str) -> Vec<CargoCategory> {
+    let mut categories = Vec::new();
+
+    // Mapping derived from authoritative game definition files
+    match cargo_id {
+        // Machinery
+        "backfl_prev" | "brake_pads" | "car_balt1" | "car_balt2" | "car_d" | "car_f" | "car_gr" | "car_ibe" | "car_it" | "caravans" | "cars_fr" | "cott_harvest" | "crawler" | "czl_es300" | "czl_muv75" | "diesel_gen" | "digger1000" | "digger500" | "excavator" | "forklifts" | "hipresstank" | "horse_tr" | "hvac" | "lux_yacht" | "mat_handler" | "mondeos" | "motorcycles" | "overweight" | "perfor_frks" | "pickup_gr" | "press_sl_val" | "pumps" | "scania_tr" | "scooters" | "seal_bearing" | "ter_forklift" | "tractors" | "train_part" | "train_part2" | "vans_fd" | "vans_id" | "vans_vt" | "volvo_cars" | "volvo_tr" | "watertank" | "windml_eng" | "windml_tube" => {
+            categories.push(CargoCategory::Machinery);
+        }
+        _ => {}
+    }
+
+    // ADR
+    match cargo_id {
+        "acetylene" | "acid" | "ammonia" | "ammunition" | "arsenic" | "chemicals" | "chlorine" | "chlorine_t" | "contamin" | "cyanide" | "diesel" | "dynamite" | "ethane" | "explosives" | "fireworks" | "fluorine" | "fuel_oil" | "fueltanker" | "hchemicals" | "hmetal" | "hwaste" | "hydrochlor" | "hydrogen" | "kerosene" | "lead" | "lpg" | "lpg_t" | "magnesium" | "med_vaccine" | "mercuric" | "neon" | "nitrocel" | "nitrogen" | "oil" | "pesticide" | "petrol" | "phosphor" | "potahydro" | "potassium" | "propane" | "sodchlor" | "sodhydro" | "sodium" | "sulfuric" | "sulfuric_t" => {
+            categories.push(CargoCategory::ADR);
+        }
+        _ => {}
+    }
+
+    // Container
+    match cargo_id {
+        "air_mails" | "aircft_tires" | "almond" | "apples_c" | "atl_cod_flt" | "backfl_prev" | "basil" | "battery" | "beans" | "beverages" | "beverages_c" | "big_bag_seed" | "boric_acid" | "bottle_water" | "brake_fluid" | "brake_pads" | "can_sardines" | "canned_beans" | "canned_beef" | "canned_pork" | "canned_tuna" | "carb_water" | "carbn_pwdr_c" | "carrots" | "carrots_c" | "cauliflower" | "caviar" | "chem_sorb_c" | "chem_sorbent" | "chewing_gums" | "chicken_meat" | "chimney_syst" | "chocolate" | "clothes" | "clothes_c" | "coconut_milk" | "coconut_oil" | "comp_process" | "concen_juice" | "cont_trees" | "copp_rf_gutt" | "corks" | "cott_cheese" | "cut_flowers" | "desinfection" | "diesel_gen" | "dryers" | "drymilk" | "elect_wiring" | "electronics" | "emp_wine_bar" | "emp_wine_bot" | "empty_barr" | "empty_palet" | "fish_chips" | "flour" | "food_oil_t" | "fresh_fish" | "frozen_hake" | "fuel_tanks" | "furniture" | "garlic" | "goat_cheese" | "grapes" | "graph_grease" | "grass_rolls" | "guard_rails" | "gummy_bears" | "harvest_bins" | "hi_volt_cabl" | "honey" | "ibc_cont" | "iced_coffee" | "ketchup" | "lamb_stom" | "large_cont" | "lavender" | "limonades" | "liver_paste" | "maple_syrup" | "mason_jars" | "med_equip" | "med_vaccine" | "metal_cans" | "milk" | "moto_tires" | "motor_oil" | "motor_oil_c" | "natur_rubber" | "nonalco_beer" | "nuts" | "nylon_cord" | "oil_filt_c" | "oil_filters" | "olive_oil" | "olive_oil_t" | "olives" | "onion" | "outdr_flr_tl" | "packag_food" | "paper" | "pasta" | "pears" | "peas" | "perfor_frks" | "pesto" | "pet_food" | "pet_food_c" | "plant_substr" | "plast_film" | "plast_film_c" | "plumb_suppl" | "plums" | "pnut_butter" | "polyst_box" | "pork_meat" | "post_packag" | "pot_flowers" | "potatoes" | "precast_strs" | "press_sl_val" | "protec_cloth" | "pumps" | "radiators" | "refl_posts" | "rice" | "rice_c" | "roof_tiles" | "roofing_felt" | "rooflights" | "salm_fillet" | "salt_spice_c" | "salt_spices" | "sandwch_pnls" | "sausages" | "sawpanels" | "scaffoldings" | "seal_bearing" | "sheep_wool" | "shock_absorb" | "silica" | "smokd_eel" | "smokd_sprats" | "soy_milk" | "spher_valves" | "steel_cord" | "stone_wool" | "straw_bales" | "sugar" | "tableware" | "toys" | "transmis" | "truck_batt" | "truck_batt_c" | "truck_rims" | "truck_rims_c" | "truck_tyres" | "tyres" | "used_battery" | "used_packag" | "used_plast" | "used_plast_c" | "valentine" | "vinegar" | "vinegar_c" | "watermelons" | "wooden_beams" | "wrk_cloth" | "yogurt" | "young_seed" => {
+            categories.push(CargoCategory::Container);
+        }
+        _ => {}
+    }
+
+    // Refrigerated
+    match cargo_id {
+        "apples" | "atl_cod_flt" | "beef_meat" | "beverages" | "beverages_t" | "cheese" | "chicken_meat" | "fish_chips" | "froz_octopi" | "frozen_hake" | "frsh_herbs" | "gnocchi" | "goat_cheese" | "icecream" | "lamb_stom" | "mozzarela" | "oranges" | "pears" | "peas" | "plums" | "pork_meat" | "prosciutto" | "sausages" | "tomatoes" | "watermelons" | "yogurt" => {
+            categories.push(CargoCategory::Refrigerated);
+        }
+        _ => {}
+    }
+
+    // Liquid
+    match cargo_id {
+        "acetylene" | "acid" | "ammonia" | "arsenic" | "chemicals" | "chlorine" | "chlorine_t" | "conc_juice_t" | "cyanide" | "diesel" | "emptytank" | "ethane" | "fertilizer" | "fluorine" | "food_oil_t" | "fuel_oil" | "fueltanker" | "hchemicals" | "hmetal" | "hwaste" | "hydrochlor" | "kerosene" | "lpg" | "lpg_t" | "magnesium" | "mercuric" | "milk_t" | "neon" | "nitrocel" | "nitrogen" | "oil" | "olive_oil" | "olive_oil_t" | "pesticide" | "petrol" | "phosphor" | "potahydro" | "potassium" | "propane" | "sodchlor" | "sodhydro" | "sodium" | "soy_milk_t" | "sulfuric" | "sulfuric_t" => {
+            categories.push(CargoCategory::Liquid);
+        }
+        _ => {}
+    }
+
+    // Fragile
+    match cargo_id {
+        "acid" | "ammonia" | "backfl_prev" | "beverages" | "beverages_c" | "beverages_t" | "car_balt1" | "car_balt2" | "car_d" | "car_f" | "car_gr" | "car_ibe" | "car_it" | "caravans" | "cars_fr" | "comp_process" | "cott_harvest" | "crawler" | "cut_flowers" | "czl_es300" | "czl_muv75" | "diesel_gen" | "digger1000" | "digger500" | "dryers" | "electronics" | "emp_wine_bar" | "emp_wine_bot" | "exhausts_c" | "food_oil_t" | "forklifts" | "furniture" | "grapes" | "hchemicals" | "hipresstank" | "horse_tr" | "hvac" | "lux_yacht" | "mat_handler" | "med_equip" | "mondeos" | "motorcycles" | "mtl_coil" | "nonalco_beer" | "olive_oil" | "olive_oil_t" | "packag_food" | "pickup_gr" | "press_sl_val" | "radiators" | "roofing_felt" | "rooflights" | "scania_tr" | "scooters" | "shock_absorb" | "spher_valves" | "ter_forklift" | "tractors" | "train_part" | "train_part2" | "transmis" | "vans_fd" | "vans_id" | "vans_vt" | "volvo_cars" | "volvo_tr" | "windml_eng" | "yogurt" => {
+            categories.push(CargoCategory::Fragile);
+        }
+        _ => {}
+    }
+
+    // Construction
+    match cargo_id {
+        "alu_ingot" | "alu_profile" | "bricks" | "concr_beams2" | "concr_cent" | "concr_stair" | "empty_spool" | "floorpanels" | "glass" | "iron_pipes" | "largetubes" | "logs" | "lumber" | "lumber_p" | "marb_blck" | "marb_blck2" | "marb_slab" | "metal_beams" | "metal_pipes" | "mtl_coil" | "olive_tree" | "plast_pipes" | "re_bars" | "sawpanels" | "sq_tub" | "vent_tube" | "wallpanels" | "wrk_cloth" => {
+            categories.push(CargoCategory::Construction);
+        }
+        _ => {}
+    }
+
+    // Bulk
+    match cargo_id {
+        "barley" | "cement" | "coal" | "excav_soil" | "granite_cube" | "gravel" | "ore" | "plastic_gra" | "rye" | "sand" | "scrap_metals" | "stone_dust" | "stones" | "wheat" | "wood_bark" | "wshavings" => {
+            categories.push(CargoCategory::Bulk);
+        }
+        _ => {}
+    }
+
+    categories
+}
+
+/// Collection of all trackable achievements
+#[derive(Debug, Clone, Default)]
+pub struct AchievementTracker {
+    /// "Drive 999 km with 5 different truck brands" achievement
+    pub brand_distance: BrandDistanceAchievement,
+    /// "Experience Beats All!" achievement
+    pub experience_beats_all: ExperienceBeatsAllAchievement,
+}
+
+impl AchievementTracker {
+    /// Calculate all achievement progress from delivery log entries
+    pub fn from_entries(entries: &[DeliveryLogEntry]) -> Self {
+        Self {
+            brand_distance: BrandDistanceAchievement::from_entries(entries),
+            experience_beats_all: ExperienceBeatsAllAchievement::from_entries(entries),
+        }
     }
 }
 

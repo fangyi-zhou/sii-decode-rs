@@ -22,7 +22,7 @@ pub struct BsiiFile<'a> {
 /// A prototype contains the definition of a data block, with an ID, a name, and a list of definition of fields.
 pub struct Prototype<'a> {
     // valid prototypes only
-    pub(crate) id: u32,
+    pub id: u32,
     pub name: &'a str,
     pub value_prototypes: Vec<ValuePrototype<'a>>,
 }
@@ -33,7 +33,7 @@ pub struct Prototype<'a> {
 /// enum values are additionally provided.
 #[derive(Debug)]
 pub struct ValuePrototype<'a> {
-    pub(crate) type_id: u32,
+    pub type_id: u32,
     pub name: &'a str,
     // enum values are only used when type_id is 0x37
     pub enum_values: Option<HashMap<u32, &'a str>>,
