@@ -1,5 +1,6 @@
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 
+use crate::ets2::analyze_save_to_json;
 use crate::file_type::decode_until_siin;
 
 #[wasm_bindgen]
@@ -12,4 +13,9 @@ pub fn decode(input: &[u8]) -> Result<String, JsError> {
         }
         Err(err) => Err(JsError::new(&format!("Decoding error: {}", err))),
     }
+}
+
+#[wasm_bindgen]
+pub fn analyze_ets2_save(input: &[u8]) -> Result<String, JsError> {
+    analyze_save_to_json(input).map_err(|err| JsError::new(&err.to_string()))
 }

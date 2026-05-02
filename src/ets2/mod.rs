@@ -1,4 +1,5 @@
 mod achievements;
+mod analysis;
 pub mod generated;
 mod save;
 
@@ -7,6 +8,7 @@ pub use achievements::{
     AchievementEvidence, AchievementProgress, AchievementRegistry, AchievementStatus,
     EXPERIENCE_BEATS_ALL_CATEGORIES,
 };
+pub use analysis::{analyze_save_to_json, AnalyzeError};
 pub use save::{
     DeliveryAnalytics, DeliveryLog, DeliveryLogEntry, SaveGame, SaveGameError, CARGO_PREFIX,
     COMPANY_PREFIX, VEHICLE_PREFIX,
