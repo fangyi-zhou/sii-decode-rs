@@ -51,7 +51,7 @@ pub struct DataBlock<'a> {
 /// An ID to identify a data block.
 /// It can be either a nameless ID (a 64 bit integer) or a named ID (consisting
 /// of multiple parts).
-#[derive(PartialEq, Debug)]
+#[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum Id {
     Nameless(u64),
     Named(Vec<String>),
