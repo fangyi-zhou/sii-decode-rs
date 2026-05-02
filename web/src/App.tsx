@@ -116,7 +116,7 @@ function App() {
             "-decoded.sii",
           );
         }
-      } else if (event.data.type === "error") {
+      } else if (event.data.type === "decode-error") {
         if (textAreaRef.current) {
           textAreaRef.current.value = `Error: ${event.data.message}`;
         }
@@ -172,7 +172,7 @@ function App() {
             error: "Tracker output could not be read.",
           });
         }
-      } else if (event.data.type === "error") {
+      } else if (event.data.type === "analysis-error") {
         setTrackerState({
           status: "error",
           analysis: null,

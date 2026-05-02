@@ -26,7 +26,10 @@ vi.mock("../src/decode.worker?worker", () => {
               });
             } else {
               this.dispatchMessage({
-                data: { type: "error", message: "Invalid SII file format" },
+                data: {
+                  type: "decode-error",
+                  message: "Invalid SII file format",
+                },
               });
             }
           } else if (data.type === "analyze") {
@@ -75,7 +78,7 @@ vi.mock("../src/decode.worker?worker", () => {
             } else {
               this.dispatchMessage({
                 data: {
-                  type: "error",
+                  type: "analysis-error",
                   message:
                     "Structured BSII analysis requires a binary BSII file",
                 },
@@ -202,4 +205,56 @@ test("Tracker can display worker error", async () => {
   await waitFor(() => {
     expect(screen.getByTestId("tracker-error")).toHaveTextContent(/Error:/);
   });
+});
+
+test("Decode errors do not overwrite tracker state after both tabs are used", async () => {
+  window.location.hash = "#tracker";
+  render(<App />);
+
+  const trackerUpload = screen.getByTestId("tracker-file-upload");
+  await userEvent.upload(trackerUpload, new File(["BSII"], "save.sii"));
+
+  await waitFor(() => {
+    expect(screen.getByTestId("tracker-results")).toBeInTheDocument();
+  });
+
+  await userEvent.click(screen.getByRole("button", { name: "Decode" }));
+  await userEvent.upload(
+    screen.getByTestId("file-upload"),
+    new File(["invalid"], "bad.sii"),
+  );
+
+  await waitFor(() => {
+    expect(screen.getByTestId("file-display")).toHaveDisplayValue(/Error:/);
+  });
+
+  await userEvent.click(screen.getByRole("button", { name: "ETS2 Tracker" }));
+
+  expect(screen.getByTestId("tracker-results")).toBeInTheDocument();
+  expect(screen.queryByTestId("tracker-error")).not.toBeInTheDocument();
+});
+
+test("Tracker errors do not render in decode output after both tabs are used", async () => {
+  window.location.hash = "#decode";
+  render(<App />);
+
+  await userEvent.upload(
+    screen.getByTestId("file-upload"),
+    new File(["SiiN"], "test.sii"),
+  );
+
+  await waitFor(() => {
+    expect(screen.getByTestId("file-display")).toHaveDisplayValue("SiiN");
+  });
+
+  await userEvent.click(screen.getByRole("button", { name: "ETS2 Tracker" }));
+  await userEvent.upload(
+    screen.getByTestId("tracker-file-upload"),
+    new File(["invalid"], "save.sii"),
+  );
+  await userEvent.click(screen.getByRole("button", { name: "Decode" }));
+
+  await new Promise((resolve) => setTimeout(resolve, 30));
+
+  expect(screen.getByTestId("file-display")).not.toHaveDisplayValue(/Error:/);
 });
