@@ -1,6 +1,7 @@
 //! Defines the BSII file format (binary SII file format)
 
 use std::collections::HashMap;
+use std::slice;
 
 /// BSII file
 ///
@@ -96,4 +97,214 @@ pub enum DataValue<'a> {
     Enum(u32),
     Id(Id),
     IdArray(Vec<Id>),
+}
+
+/// A value paired with the prototype field that defines it.
+pub struct DataField<'file, 'data> {
+    pub prototype: &'data ValuePrototype<'file>,
+    pub value: &'data DataValue<'file>,
+}
+
+/// Iterator over the fields in a data block.
+pub struct DataFields<'file, 'data> {
+    prototypes: slice::Iter<'data, ValuePrototype<'file>>,
+    values: slice::Iter<'data, DataValue<'file>>,
+}
+
+impl<'file, 'data> Iterator for DataFields<'file, 'data> {
+    type Item = DataField<'file, 'data>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let prototype = self.prototypes.next()?;
+        let value = self.values.next()?;
+        Some(DataField { prototype, value })
+    }
+}
+
+impl<'a> BsiiFile<'a> {
+    /// Return the BSII file header bytes.
+    pub fn header(&self) -> &'a [u8] {
+        self.header
+    }
+
+    /// Return the BSII format version.
+    pub fn version(&self) -> u32 {
+        self.version
+    }
+
+    /// Look up a prototype by numeric prototype ID.
+    pub fn get_prototype(&self, id: u32) -> Option<&Prototype<'a>> {
+        self.prototypes.get(&id)
+    }
+
+    /// Iterate over all prototypes.
+    pub fn prototypes(&self) -> impl Iterator<Item = &Prototype<'a>> {
+        self.prototypes.values()
+    }
+
+    /// Iterate over all data blocks.
+    pub fn data_blocks(&self) -> impl Iterator<Item = &DataBlock<'a>> {
+        self.data_blocks.iter()
+    }
+
+    /// Iterate over blocks whose prototype has the given name.
+    pub fn blocks_by_prototype_name<'data>(
+        &'data self,
+        name: &'data str,
+    ) -> impl Iterator<Item = &'data DataBlock<'a>> + 'data {
+        self.data_blocks.iter().filter(move |block| {
+            self.get_prototype(block.prototype_id)
+                .is_some_and(|prototype| prototype.name == name)
+        })
+    }
+}
+
+impl<'a> Prototype<'a> {
+    /// Return the numeric prototype ID.
+    pub fn id(&self) -> u32 {
+        self.id
+    }
+
+    /// Iterate over the prototype's field definitions.
+    pub fn fields(&self) -> impl Iterator<Item = &ValuePrototype<'a>> {
+        self.value_prototypes.iter()
+    }
+
+    /// Return the index of a field by name.
+    pub fn field_index(&self, name: &str) -> Option<usize> {
+        self.value_prototypes
+            .iter()
+            .position(|field| field.name == name)
+    }
+
+    /// Look up a field definition by name.
+    pub fn field(&self, name: &str) -> Option<&ValuePrototype<'a>> {
+        self.field_index(name)
+            .and_then(|index| self.value_prototypes.get(index))
+    }
+}
+
+impl ValuePrototype<'_> {
+    /// Return the BSII type ID for this field.
+    pub fn type_id(&self) -> u32 {
+        self.type_id
+    }
+}
+
+impl<'a> DataBlock<'a> {
+    /// Look up this block's prototype in the containing file.
+    pub fn prototype<'data>(&self, file: &'data BsiiFile<'a>) -> Option<&'data Prototype<'a>> {
+        file.get_prototype(self.prototype_id)
+    }
+
+    /// Iterate over this block's values paired with their field definitions.
+    ///
+    /// Returns `None` if the block references a missing prototype or if the
+    /// number of values does not match the prototype definition.
+    pub fn fields<'data>(&'data self, file: &'data BsiiFile<'a>) -> Option<DataFields<'a, 'data>> {
+        let prototype = self.prototype(file)?;
+        if prototype.value_prototypes.len() != self.data.len() {
+            return None;
+        }
+        Some(DataFields {
+            prototypes: prototype.value_prototypes.iter(),
+            values: self.data.iter(),
+        })
+    }
+
+    /// Look up a value by field name.
+    pub fn field<'data>(
+        &'data self,
+        file: &'data BsiiFile<'a>,
+        name: &str,
+    ) -> Option<&'data DataValue<'a>> {
+        let prototype = self.prototype(file)?;
+        let index = prototype.field_index(name)?;
+        self.data.get(index)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn helpers_inspect_prototypes_blocks_and_fields_safely() {
+        let prototype = Prototype {
+            id: 7,
+            name: "delivery_log_entry",
+            value_prototypes: vec![
+                ValuePrototype {
+                    type_id: 0x03,
+                    name: "cargo",
+                    enum_values: None,
+                },
+                ValuePrototype {
+                    type_id: 0x25,
+                    name: "revenue",
+                    enum_values: None,
+                },
+            ],
+        };
+        let file = BsiiFile {
+            header: b"BSII",
+            version: 2,
+            prototypes: HashMap::from([(prototype.id, prototype)]),
+            data_blocks: vec![DataBlock {
+                prototype_id: 7,
+                id: Id::Nameless(1),
+                data: vec![
+                    DataValue::EncodedString("gravel".to_string()),
+                    DataValue::Int32(12500),
+                ],
+            }],
+        };
+
+        assert_eq!(file.header(), b"BSII");
+        assert_eq!(file.version(), 2);
+
+        let prototype = file.get_prototype(7).unwrap();
+        assert_eq!(prototype.id(), 7);
+        assert_eq!(prototype.field("cargo").unwrap().type_id(), 0x03);
+        assert_eq!(prototype.fields().count(), 2);
+
+        let block = file
+            .blocks_by_prototype_name("delivery_log_entry")
+            .next()
+            .unwrap();
+        assert_eq!(
+            block.field(&file, "cargo"),
+            Some(&DataValue::EncodedString("gravel".to_string()))
+        );
+        assert_eq!(block.field(&file, "missing"), None);
+
+        let fields = block.fields(&file).unwrap().collect::<Vec<_>>();
+        assert_eq!(fields.len(), 2);
+        assert_eq!(fields[0].prototype.name, "cargo");
+        assert_eq!(
+            fields[0].value,
+            &DataValue::EncodedString("gravel".to_string())
+        );
+    }
+
+    #[test]
+    fn block_fields_rejects_mismatched_prototype_lengths() {
+        let prototype = Prototype {
+            id: 1,
+            name: "short",
+            value_prototypes: vec![],
+        };
+        let file = BsiiFile {
+            header: b"BSII",
+            version: 2,
+            prototypes: HashMap::from([(prototype.id, prototype)]),
+            data_blocks: vec![DataBlock {
+                prototype_id: 1,
+                id: Id::Nameless(1),
+                data: vec![DataValue::Int32(1)],
+            }],
+        };
+
+        assert!(file.data_blocks[0].fields(&file).is_none());
+    }
 }
