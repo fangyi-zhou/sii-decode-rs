@@ -8,14 +8,16 @@ pub const COMPANY_PREFIX: &str = "company.volatile.";
 pub const CARGO_PREFIX: &str = "cargo.";
 pub const VEHICLE_PREFIX: &str = "vehicle.";
 
+// Delivery log params are reverse engineered by the community:
+// https://forum.scssoft.com/viewtopic.php?start=10&t=317674
 const SOURCE_COMPANY_PARAM: usize = 1;
 const DESTINATION_COMPANY_PARAM: usize = 2;
 const CARGO_PARAM: usize = 3;
-const DISTANCE_PARAM: usize = 5;
+const REVENUE_PARAM: usize = 5;
+const DISTANCE_PARAM: usize = 6;
 const TRUCK_PARAM: usize = 16;
 const JOB_TYPE_PARAM: usize = 18;
-const REVENUE_PARAM: usize = 22;
-const MIN_PARAMS_LEN: usize = REVENUE_PARAM + 1;
+const MIN_PARAMS_LEN: usize = JOB_TYPE_PARAM + 1;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SaveGame {
@@ -330,30 +332,32 @@ mod tests {
             "company.volatile.stokes.amsterdam",
             "cargo.gravel",
             "16",
+            "16930.000",
             "362",
-            "0",
             "0.000",
             "295",
             "0",
             "0",
             "1",
             "1",
-            "362",
+            "16930",
             "0",
             "600",
             "vehicle.mercedes.actros",
-            "1",
+            "362",
             "quick",
             "",
             "",
             "0",
-            "16930.000",
+            "25000.000",
         ];
         let entry = DeliveryLogEntry::from_params(&params).unwrap();
 
         assert_eq!(entry.source_company, "company.volatile.lkwlog.amsterdam");
         assert_eq!(company_id(&entry.source_company), "lkwlog");
         assert_eq!(cargo_id(&entry.cargo), "gravel");
+        assert_eq!(entry.distance_km, 362);
+        assert_eq!(entry.revenue, 16930.0);
         assert_eq!(truck_brand(&entry.truck), "mercedes");
         assert_eq!(entry.job_type, "quick");
     }
@@ -453,24 +457,24 @@ mod tests {
             "company.volatile.stokes.amsterdam",
             cargo,
             "16",
+            revenue,
             distance,
-            "0",
             "0.000",
             "295",
             "0",
             "0",
             "1",
             "1",
-            distance,
+            revenue,
             "0",
             "600",
             truck,
-            "1",
+            distance,
             job_type,
             "",
             "",
             "0",
-            revenue,
+            "25000.000",
         ]
     }
 
