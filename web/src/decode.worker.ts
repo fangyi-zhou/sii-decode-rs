@@ -13,7 +13,8 @@ export type DecodeRequest =
 export type DecodeResponse =
   | { type: "success"; result: string; blobUrl: string }
   | { type: "analysis-success"; result: string }
-  | { type: "error"; message: string };
+  | { type: "decode-error"; message: string }
+  | { type: "analysis-error"; message: string };
 
 self.onmessage = (event: MessageEvent<DecodeRequest>) => {
   if (event.data.type === "decode") {
@@ -32,7 +33,7 @@ self.onmessage = (event: MessageEvent<DecodeRequest>) => {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       self.postMessage({
-        type: "error",
+        type: "decode-error",
         message,
       } satisfies DecodeResponse);
     }
@@ -47,7 +48,7 @@ self.onmessage = (event: MessageEvent<DecodeRequest>) => {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       self.postMessage({
-        type: "error",
+        type: "analysis-error",
         message,
       } satisfies DecodeResponse);
     }
