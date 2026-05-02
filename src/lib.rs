@@ -1,6 +1,7 @@
 pub mod bsii_file;
 mod bsii_output;
 mod bsii_parse;
+pub mod ets2;
 pub mod file_type;
 pub mod scsc_file;
 mod scsc_parse;

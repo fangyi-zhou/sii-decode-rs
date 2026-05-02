@@ -6,6 +6,10 @@ license = "MIT"
 description = "A Rust library for decoding SII files used in Euro Truck Simulator 2 and American Truck Simulator."
 repository = "https://github.com/fangyi-zhou/sii-decode-rs"
 
+[workspace]
+members = [".", "xtask"]
+resolver = "2"
+
 [lib]
 name = "sii_decode"
 path = "src/lib.rs"
