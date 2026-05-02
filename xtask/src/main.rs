@@ -13,6 +13,8 @@ struct CargoMetadata {
     id: String,
     name: String,
     groups: Vec<String>,
+    adr_class: Option<String>,
+    fragility: Option<String>,
     body_types: Vec<String>,
     trailer_categories: Vec<String>,
 }
@@ -133,6 +135,8 @@ fn parse_cargo_file(
     let mut id = None;
     let mut name = None;
     let mut groups = BTreeSet::new();
+    let mut adr_class = None;
+    let mut fragility = None;
     let mut body_types = BTreeSet::new();
 
     for line in normalized_lines(content) {
@@ -144,6 +148,10 @@ fn parse_cargo_file(
             name = Some(parse_value(value.trim()).to_string());
         } else if let Some(value) = line.strip_prefix("group[]:") {
             groups.insert(parse_value(value.trim()).to_string());
+        } else if let Some(value) = line.strip_prefix("adr_class:") {
+            adr_class = Some(parse_value(value.trim()).to_string());
+        } else if let Some(value) = line.strip_prefix("fragility:") {
+            fragility = Some(parse_value(value.trim()).to_string());
         } else if let Some(value) = line.strip_prefix("body_types[]:") {
             body_types.insert(parse_value(value.trim()).to_string());
         }
@@ -163,6 +171,8 @@ fn parse_cargo_file(
         id,
         name,
         groups: groups.into_iter().collect(),
+        adr_class,
+        fragility,
         body_types,
         trailer_categories,
     })
@@ -270,6 +280,14 @@ fn render_rust(cargos: &[CargoMetadata]) -> String {
             render_rust_str_slice(&cargo.groups)
         ));
         output.push_str(&format!(
+            "        adr_class: {},\n",
+            render_rust_option(&cargo.adr_class)
+        ));
+        output.push_str(&format!(
+            "        fragility: {},\n",
+            render_rust_option(&cargo.fragility)
+        ));
+        output.push_str(&format!(
             "        body_types: {},\n",
             render_rust_str_slice(&cargo.body_types)
         ));
@@ -293,6 +311,13 @@ fn render_rust_str_slice(values: &[String]) -> String {
     format!("&[{values}]")
 }
 
+fn render_rust_option(value: &Option<String>) -> String {
+    value
+        .as_ref()
+        .map(|value| format!("Some(\"{}\")", rust_escape(value)))
+        .unwrap_or_else(|| "None".to_string())
+}
+
 fn rust_escape(value: &str) -> String {
     value.escape_default().to_string()
 }
@@ -312,6 +337,14 @@ fn render_json(cargos: &[CargoMetadata]) -> String {
         output.push_str(&format!(
             "      \"groups\": {},\n",
             render_json_array(&cargo.groups)
+        ));
+        output.push_str(&format!(
+            "      \"adr_class\": {},\n",
+            render_json_option(&cargo.adr_class)
+        ));
+        output.push_str(&format!(
+            "      \"fragility\": {},\n",
+            render_json_option(&cargo.fragility)
         ));
         output.push_str(&format!(
             "      \"body_types\": {},\n",
@@ -334,6 +367,13 @@ fn render_json_array(values: &[String]) -> String {
         .collect::<Vec<_>>()
         .join(", ");
     format!("[{values}]")
+}
+
+fn render_json_option(value: &Option<String>) -> String {
+    value
+        .as_ref()
+        .map(|value| format!("\"{}\"", json_escape(value)))
+        .unwrap_or_else(|| "null".to_string())
 }
 
 fn json_escape(value: &str) -> String {
@@ -369,6 +409,8 @@ mod tests {
             cargo_data: cargo.apples
             {
                 name: "@@cn_apples@@"
+                adr_class: 3
+                fragility: 0.35
                 group[]: refrigerated
                 group[]: containers
                 body_types[]: curtainside
@@ -382,6 +424,8 @@ mod tests {
         assert_eq!(cargo.id, "apples");
         assert_eq!(cargo.name, "@@cn_apples@@");
         assert_eq!(cargo.groups, ["containers", "refrigerated"]);
+        assert_eq!(cargo.adr_class.as_deref(), Some("3"));
+        assert_eq!(cargo.fragility.as_deref(), Some("0.35"));
         assert_eq!(cargo.body_types, ["curtainside", "dryvan"]);
         assert_eq!(cargo.trailer_categories, ["dryvan"]);
     }

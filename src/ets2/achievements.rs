@@ -171,7 +171,7 @@ fn achievement_categories_for_metadata(metadata: &CargoMetadata) -> BTreeSet<&'s
     if metadata.groups.contains(&"machinery") {
         categories.insert("Machinery");
     }
-    if metadata.groups.contains(&"adr") {
+    if metadata.adr_class.is_some() || metadata.groups.contains(&"adr") {
         categories.insert("ADR cargo");
     }
     if metadata.groups.contains(&"containers") || metadata.trailer_categories.contains(&"container")
@@ -186,7 +186,10 @@ fn achievement_categories_for_metadata(metadata: &CargoMetadata) -> BTreeSet<&'s
     if metadata.groups.contains(&"liquid") || metadata.trailer_categories.contains(&"tr_tank") {
         categories.insert("Liquid cargo");
     }
-    if metadata.id == "glass_packed" || metadata.groups.contains(&"inloader") {
+    if metadata.fragility.is_some()
+        || metadata.id == "glass_packed"
+        || metadata.groups.contains(&"inloader")
+    {
         categories.insert("Fragile cargo");
     }
     if metadata.groups.contains(&"construction") {
@@ -287,9 +290,11 @@ mod tests {
     fn derives_achievement_categories_from_cargo_metadata() {
         assert!(achievement_categories_for_cargo("cargo.digger1000").contains("Machinery"));
         assert!(achievement_categories_for_cargo("cargo.hydrogen").contains("ADR cargo"));
+        assert!(achievement_categories_for_cargo("cargo.acid").contains("ADR cargo"));
         assert!(achievement_categories_for_cargo("cargo.apples_c").contains("Container"));
         assert!(achievement_categories_for_cargo("cargo.canned_beef").contains("Refrigerated"));
         assert!(achievement_categories_for_cargo("cargo.acid").contains("Liquid cargo"));
+        assert!(achievement_categories_for_cargo("cargo.acid").contains("Fragile cargo"));
         assert!(achievement_categories_for_cargo("cargo.glass_packed").contains("Fragile cargo"));
         assert!(achievement_categories_for_cargo("cargo.bricks").contains("Construction"));
         assert!(achievement_categories_for_cargo("cargo.gravel").contains("Bulk cargo"));

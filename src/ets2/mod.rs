@@ -19,6 +19,8 @@ pub struct CargoMetadata {
     pub id: &'static str,
     pub name: &'static str,
     pub groups: &'static [&'static str],
+    pub adr_class: Option<&'static str>,
+    pub fragility: Option<&'static str>,
     pub body_types: &'static [&'static str],
     pub trailer_categories: &'static [&'static str],
 }
