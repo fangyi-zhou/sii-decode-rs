@@ -10,6 +10,7 @@ vi.mock("../src/decode.worker?worker", () => {
       onmessage = null;
       onerror = null;
       onmessageerror = null;
+      messageListeners = new Set();
 
       postMessage(data) {
         setTimeout(() => {
@@ -20,11 +21,11 @@ vi.mock("../src/decode.worker?worker", () => {
             if (text.startsWith("SiiN")) {
               const blob = new Blob([text], { type: "text/plain" });
               const blobUrl = URL.createObjectURL(blob);
-              this.onmessage?.({
+              this.dispatchMessage({
                 data: { type: "success", result: text, blobUrl },
               });
             } else {
-              this.onmessage?.({
+              this.dispatchMessage({
                 data: { type: "error", message: "Invalid SII file format" },
               });
             }
@@ -33,7 +34,7 @@ vi.mock("../src/decode.worker?worker", () => {
             const text = new TextDecoder().decode(bytes);
 
             if (text.startsWith("BSII")) {
-              this.onmessage?.({
+              this.dispatchMessage({
                 data: {
                   type: "analysis-success",
                   result: JSON.stringify({
@@ -72,7 +73,7 @@ vi.mock("../src/decode.worker?worker", () => {
                 },
               });
             } else {
-              this.onmessage?.({
+              this.dispatchMessage({
                 data: {
                   type: "error",
                   message:
@@ -84,15 +85,20 @@ vi.mock("../src/decode.worker?worker", () => {
         }, 10);
       }
 
+      dispatchMessage(event) {
+        this.onmessage?.(event);
+        this.messageListeners.forEach((handler) => handler(event));
+      }
+
       addEventListener(type, handler) {
         if (type === "message") {
-          this.onmessage = handler;
+          this.messageListeners.add(handler);
         }
       }
 
       removeEventListener(type, handler) {
-        if (type === "message" && this.onmessage === handler) {
-          this.onmessage = null;
+        if (type === "message") {
+          this.messageListeners.delete(handler);
         }
       }
 
