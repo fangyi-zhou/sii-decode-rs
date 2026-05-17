@@ -57,6 +57,7 @@ pub struct AchievementProgress {
 pub struct AchievementEvidence {
     pub label: String,
     pub value: String,
+    pub items: Vec<String>,
     pub complete: bool,
 }
 
@@ -93,11 +94,8 @@ fn experience_beats_all(save: &SaveGame) -> Achievement {
             let cargos = &evidence_by_category[category];
             AchievementEvidence {
                 label: category.to_string(),
-                value: if cargos.is_empty() {
-                    "missing".to_string()
-                } else {
-                    cargos.iter().cloned().collect::<Vec<_>>().join(", ")
-                },
+                value: summarize_set(cargos, SUMMARY_EVIDENCE_LIMIT),
+                items: set_items(cargos),
                 complete: !cargos.is_empty(),
             }
         })
@@ -137,6 +135,7 @@ fn test_drive_limited(save: &SaveGame) -> Achievement {
         .map(|(brand, distance)| AchievementEvidence {
             label: brand.clone(),
             value: format!("{distance} km"),
+            items: Vec::new(),
             complete: *distance >= TEST_DRIVE_LIMITED_TARGET_DISTANCE_KM,
         })
         .collect::<Vec<_>>();
@@ -179,6 +178,7 @@ fn all_is_possible(save: &SaveGame) -> Achievement {
         evidence: vec![AchievementEvidence {
             label: "Completed cargoes".to_string(),
             value: summarize_set(&cargos, SUMMARY_EVIDENCE_LIMIT),
+            items: set_items(&cargos),
             complete: current >= ALL_IS_POSSIBLE_TARGET_CARGOS,
         }],
     }
@@ -212,6 +212,7 @@ fn reliable_contractor(save: &SaveGame) -> Achievement {
         evidence: vec![AchievementEvidence {
             label: "Companies".to_string(),
             value: summarize_set(&companies, SUMMARY_EVIDENCE_LIMIT),
+            items: set_items(&companies),
             complete: current >= RELIABLE_CONTRACTOR_TARGET_COMPANIES,
         }],
     }
@@ -245,6 +246,7 @@ fn long_hauler(save: &SaveGame) -> Achievement {
             value: longest
                 .map(delivery_summary)
                 .unwrap_or_else(|| "missing".to_string()),
+            items: Vec::new(),
             complete,
         }],
     }
@@ -289,6 +291,7 @@ fn profit_hunter(save: &SaveGame) -> Achievement {
             value: evidence_entry
                 .map(delivery_summary)
                 .unwrap_or_else(|| "missing".to_string()),
+            items: Vec::new(),
             complete,
         }],
     }
@@ -376,6 +379,10 @@ fn summarize_set(values: &BTreeSet<String>, limit: usize) -> String {
     summary.join(", ")
 }
 
+fn set_items(values: &BTreeSet<String>) -> Vec<String> {
+    values.iter().cloned().collect()
+}
+
 fn delivery_summary(entry: &DeliveryLogEntry) -> String {
     format!(
         "{}, {} km, {}",
@@ -430,6 +437,11 @@ mod tests {
             .evidence
             .iter()
             .all(|evidence| evidence.complete));
+        assert!(achievement
+            .evidence
+            .iter()
+            .any(|evidence| evidence.label == "Bulk cargo"
+                && evidence.items == vec!["gravel".to_string()]));
     }
 
     #[test]
@@ -467,7 +479,7 @@ mod tests {
 
     #[test]
     fn evaluates_all_is_possible() {
-        let mut entries = (0..30)
+        let mut entries = (0..32)
             .map(|index| {
                 entry(
                     &format!("cargo.cargo_{index}"),
@@ -483,9 +495,15 @@ mod tests {
         let achievement = achievement_by_id(&save, "all_is_possible");
 
         assert_eq!(achievement.status, AchievementStatus::Complete);
-        assert_eq!(achievement.progress.current, 30);
+        assert_eq!(achievement.progress.current, 32);
         assert_eq!(achievement.progress.target, 30);
         assert!(achievement.evidence[0].complete);
+        assert!(achievement.evidence[0].value.contains("+2 more"));
+        assert_eq!(achievement.evidence[0].items.len(), 32);
+        assert!(!achievement.evidence[0]
+            .items
+            .iter()
+            .any(|item| item.starts_with('+')));
     }
 
     #[test]
@@ -510,6 +528,11 @@ mod tests {
         assert_eq!(achievement.progress.current, 16);
         assert_eq!(achievement.progress.target, 15);
         assert!(achievement.evidence[0].value.contains("source_0"));
+        assert_eq!(achievement.evidence[0].items.len(), 16);
+        assert!(achievement.evidence[0]
+            .items
+            .iter()
+            .any(|item| item == "source_0"));
     }
 
     #[test]

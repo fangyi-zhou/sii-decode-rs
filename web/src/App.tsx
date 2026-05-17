@@ -30,6 +30,7 @@ type TrackerAnalysis = {
     evidence: Array<{
       label: string;
       value: string;
+      items?: string[];
       complete: boolean;
     }>;
   }>;
@@ -382,15 +383,13 @@ function AchievementEvidenceList({
 }) {
   const [expandedEvidence, setExpandedEvidence] =
     useState<AchievementEvidence | null>(null);
-  const expandedItems = expandedEvidence
-    ? splitEvidenceValue(expandedEvidence.value)
-    : [];
+  const expandedItems = expandedEvidence?.items ?? [];
 
   return (
     <>
       <ul className="evidence-list">
         {evidence.map((item) => {
-          const items = splitEvidenceValue(item.value);
+          const items = item.items ?? [];
           const hasList = itemLabel !== null && items.length > 1;
           return (
             <li key={item.label}>
@@ -448,13 +447,6 @@ function AchievementEvidenceList({
       ) : null}
     </>
   );
-}
-
-function splitEvidenceValue(value: string) {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 function evidenceListItemLabel(achievementId: string) {

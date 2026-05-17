@@ -118,11 +118,20 @@ fn render_evidence(evidence: &[AchievementEvidence]) -> String {
     let evidence = evidence
         .iter()
         .map(|item| {
+            let items = if item.items.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    ", \"items\": {}",
+                    render_string_iter(item.items.iter().map(String::as_str))
+                )
+            };
             format!(
-                "{{ \"label\": \"{}\", \"value\": \"{}\", \"complete\": {} }}",
+                "{{ \"label\": \"{}\", \"value\": \"{}\", \"complete\": {}{} }}",
                 json_escape(&item.label),
                 json_escape(&item.value),
-                item.complete
+                item.complete,
+                items
             )
         })
         .collect::<Vec<_>>()
@@ -205,5 +214,6 @@ mod tests {
         assert!(json.contains("\"total_distance_km\": 362"));
         assert!(json.contains("\"id\": \"experience_beats_all\""));
         assert!(json.contains("\"id\": \"test_drive_limited\""));
+        assert!(json.contains("\"items\": [\"gravel\"]"));
     }
 }

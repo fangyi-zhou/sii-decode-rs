@@ -66,7 +66,8 @@ vi.mock("../src/decode.worker?worker", () => {
                         evidence: [
                           {
                             label: "Bulk cargo",
-                            value: "gravel, sand",
+                            value: "gravel, +103 more",
+                            items: ["gravel", "sand"],
                             complete: true,
                           },
                         ],
@@ -196,6 +197,7 @@ test("Tracker can render analysis", async () => {
   await userEvent.click(screen.getByRole("button", { name: "View 2 cargos" }));
   expect(screen.getByRole("dialog")).toHaveTextContent("gravel");
   expect(screen.getByRole("dialog")).toHaveTextContent("sand");
+  expect(screen.getByRole("dialog")).not.toHaveTextContent("+103 more");
   await userEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(
     screen.queryByRole("button", { name: "View 3 cargos" }),
