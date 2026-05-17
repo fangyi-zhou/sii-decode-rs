@@ -66,7 +66,26 @@ vi.mock("../src/decode.worker?worker", () => {
                         evidence: [
                           {
                             label: "Bulk cargo",
-                            value: "gravel",
+                            value: "gravel, sand",
+                            complete: true,
+                          },
+                        ],
+                      },
+                      {
+                        id: "long_hauler",
+                        display_name: "Long Hauler",
+                        description:
+                          "Complete a delivery that was greater than 2,000 km.",
+                        status: "complete",
+                        progress: {
+                          current: 2201,
+                          target: 2000,
+                          unit: "km",
+                        },
+                        evidence: [
+                          {
+                            label: "Longest delivery",
+                            value: "gravel, 2201 km, 125000 EUR",
                             complete: true,
                           },
                         ],
@@ -174,6 +193,14 @@ test("Tracker can render analysis", async () => {
   });
   expect(screen.getByText("Experience Beats All")).toBeInTheDocument();
   expect(screen.getByText("1 / 8 categories")).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "View 2 cargos" }));
+  expect(screen.getByRole("dialog")).toHaveTextContent("gravel");
+  expect(screen.getByRole("dialog")).toHaveTextContent("sand");
+  await userEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(
+    screen.queryByRole("button", { name: "View 3 cargos" }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText("gravel, 2201 km, 125000 EUR")).toBeInTheDocument();
   const deliveries = screen.getByText("Deliveries").closest(".metric");
   expect(deliveries).not.toBeNull();
   expect(within(deliveries).getByText("2")).toBeInTheDocument();

@@ -156,27 +156,120 @@ progress {
 
 .evidence-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 8px 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px 18px;
+  max-height: 260px;
   margin: 0;
   padding: 0;
+  overflow-y: auto;
   list-style: none;
   font-size: 0.9rem;
+  scrollbar-gutter: stable;
 }
 
 .evidence-list li {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(92px, 0.7fr) minmax(0, 1fr);
+  align-items: center;
   min-width: 0;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
 }
 
-.evidence-list li span:last-child {
+.evidence-label {
+  color: #5b6675;
+}
+
+.evidence-value {
   overflow: hidden;
   color: #152033;
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.evidence-summary {
+  min-width: 0;
+  border: 1px solid #c8d0dc;
+  background: #f8fafc;
+  color: #1f2937;
+  text-align: center;
+}
+
+.evidence-summary:hover {
+  border-color: #94a3b8;
+}
+
+.evidence-popout-backdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 0.35);
+}
+
+.evidence-popout {
+  box-sizing: border-box;
+  display: flex;
+  width: min(560px, 100%);
+  max-height: min(640px, calc(100vh - 48px));
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #fff;
+  padding: 18px;
+  box-shadow: 0 24px 64px rgb(15 23 42 / 0.24);
+}
+
+.evidence-popout-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.evidence-popout-heading h4,
+.evidence-popout-heading p {
+  margin: 0;
+}
+
+.evidence-popout-heading p {
+  color: #5b6675;
+}
+
+.evidence-popout-close {
+  border: 1px solid #c8d0dc;
+  background: #fff;
+  color: #1f2937;
+}
+
+.evidence-popout-close:hover {
+  border-color: #94a3b8;
+}
+
+.cargo-popout-list {
+  display: grid;
+  gap: 6px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-gutter: stable;
+}
+
+.cargo-popout-list li {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  color: #152033;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.9rem;
 }
 
 .error {

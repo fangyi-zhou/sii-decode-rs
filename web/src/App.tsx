@@ -35,6 +35,9 @@ type TrackerAnalysis = {
   }>;
 };
 
+type AchievementEvidence =
+  TrackerAnalysis["achievements"][number]["evidence"][number];
+
 function App() {
   const [file, setFile] = useState<File | null>(null);
   const [trackerFile, setTrackerFile] = useState<File | null>(null);
@@ -360,18 +363,111 @@ function AchievementList({
             {achievement.progress.current} / {achievement.progress.target}{" "}
             {achievement.progress.unit}
           </div>
-          <ul className="evidence-list">
-            {achievement.evidence.map((evidence) => (
-              <li key={evidence.label}>
-                <span>{evidence.label}</span>
-                <span>{evidence.value}</span>
-              </li>
-            ))}
-          </ul>
+          <AchievementEvidenceList
+            evidence={achievement.evidence}
+            itemLabel={evidenceListItemLabel(achievement.id)}
+          />
         </article>
       ))}
     </section>
   );
+}
+
+function AchievementEvidenceList({
+  evidence,
+  itemLabel,
+}: {
+  evidence: AchievementEvidence[];
+  itemLabel: string | null;
+}) {
+  const [expandedEvidence, setExpandedEvidence] =
+    useState<AchievementEvidence | null>(null);
+  const expandedItems = expandedEvidence
+    ? splitEvidenceValue(expandedEvidence.value)
+    : [];
+
+  return (
+    <>
+      <ul className="evidence-list">
+        {evidence.map((item) => {
+          const items = splitEvidenceValue(item.value);
+          const hasList = itemLabel !== null && items.length > 1;
+          return (
+            <li key={item.label}>
+              <span className="evidence-label">{item.label}</span>
+              {hasList ? (
+                <button
+                  type="button"
+                  className="evidence-summary"
+                  onClick={() => setExpandedEvidence(item)}
+                >
+                  View {items.length} {itemLabel}
+                </button>
+              ) : (
+                <span className="evidence-value">{item.value}</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {expandedEvidence ? (
+        <div
+          className="evidence-popout-backdrop"
+          onClick={() => setExpandedEvidence(null)}
+        >
+          <section
+            className="evidence-popout"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="evidence-popout-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="evidence-popout-heading">
+              <div>
+                <h4 id="evidence-popout-title">{expandedEvidence.label}</h4>
+                <p>
+                  {expandedItems.length} {itemLabel ?? "items"}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="evidence-popout-close"
+                onClick={() => setExpandedEvidence(null)}
+              >
+                Close
+              </button>
+            </div>
+            <ul className="cargo-popout-list">
+              {expandedItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function splitEvidenceValue(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function evidenceListItemLabel(achievementId: string) {
+  if (achievementId === "reliable_contractor") {
+    return "companies";
+  }
+  if (
+    achievementId === "experience_beats_all" ||
+    achievementId === "all_is_possible"
+  ) {
+    return "cargos";
+  }
+  return null;
 }
 
 function formatCurrency(value: number) {
