@@ -1,12 +1,12 @@
 /// <reference types="vitest" />
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { playwright } from "@vitest/browser-playwright";
 import wasm from "vite-plugin-wasm";
-import topLevelAwait from "vite-plugin-top-level-await";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), wasm(), topLevelAwait()],
+  plugins: [react(), wasm()],
   worker: {
     format: "es",
     plugins: () => [wasm()],
@@ -18,7 +18,7 @@ export default defineConfig({
     ],
     environment: "happy-dom",
     browser: {
-      provider: "playwright",
+      provider: playwright(),
       enabled: true,
       headless: true,
       instances: [{ browser: "firefox" }],
